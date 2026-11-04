@@ -66,8 +66,14 @@ Notes for Task 7:
 
 ## S5: Package migration on SQLite and SQL Server
 
-**Gate:** pending (Task 5 Step 5)
-**Result / Decision:** pending until Task 5 Step 5 (`MigrationTests.Plan_creates_both_tables` on SQLite and SQL Server).
+**Gate:** GO
+**Result / Decision:** The migration (`AsyncMigrationBase`, one step `AddArchivedUserTables`, state `archived-users-1`) works unchanged on SQLite and SQL Server 2022: `MigrationTests.Plan_creates_both_tables`, `MigrationTests.Plan_is_safe_to_rerun`, `MigrationTests.Step_tolerates_table_created_concurrently` and every `ArchivedUserRepositoryTests` test pass on both. No per-provider branch needed.
+
+- SQLite: `dotnet test src/Umbraco.Community.ArchivedUsers.IntegrationTests --filter "FullyQualifiedName~MigrationTests|FullyQualifiedName~ArchivedUserRepositoryTests"` → 12/12 passed (2026-11-04).
+- SQL Server: run locally against `mcr.microsoft.com/mssql/server:2022-latest` (linux/amd64 under emulation on Apple Silicon) with `Tests__Database__DatabaseType=SqlServer` and `Tests__Database__SQLServerMasterConnectionString`; the framework created and dropped `UmbracoTests-*` databases (seen in the SQL Server log). Whole integration suite → 28/28 passed. `.github/workflows/nightly.yml` (`integration-sqlserver`) repeats this in CI once the repo is pushed; **no CI run URL exists yet**, because nothing has been pushed (Pascal's to-do).
+- Demo site on SQL Server: an empty `AuDemo` database, unattended install, started twice. Both tables exist, and `umbracoKeyValue` has `Umbraco.Core.Upgrader.State+Umbraco.Community.ArchivedUsers = archived-users-1`. The second start logged no Error or Fatal entries.
+- Found on the way: Umbraco runs package migrations unattended at boot (`Umbraco:CMS:Unattended:PackageMigrationsUnattended`, default true). Two SQLite writers creating the same table in parallel deadlock (seen in a stack dump: the boot upgrader and a test both in `AddArchivedUserTables.CreateIfMissing`). The test project's `appsettings.Tests.json` turns unattended package migrations off, so tests decide when the plan runs. Sites are not affected: one SQLite site runs one upgrader.
+- `ColumnInfo.IsNullable` from `GetColumnsInSchema` did not report `reEnabled` as NOT NULL on SQLite, so the test checks the behaviour instead: inserting NULL into `reEnabled` fails, and an omitted value defaults to 0.
 
 ## S6: Frontend wiring and the OpenAPI client
 
