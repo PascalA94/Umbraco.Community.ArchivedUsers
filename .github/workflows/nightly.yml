@@ -84,9 +84,10 @@ jobs:
       # Throwaway CI-only credentials for a disposable demo database; not secrets.
       Umbraco__CMS__Unattended__UnattendedUserPassword: 'Ci-Admin-Only-Pw-1!'
       ArchivedUsersDemo__UserPassword: 'Ci-Demo-Only-Pw-1!'
-      URL: http://localhost:28331
-      # Invitation links need a fixed application URL on Umbraco 18.3+; the demo's default is the local https port.
-      Umbraco__CMS__WebRouting__UmbracoApplicationUrl: http://localhost:28331
+      # Umbraco's OpenIddict server refuses plain HTTP (ID2083), so the demo runs on HTTPS with the .NET dev certificate.
+      URL: https://localhost:44331
+      # Invitation links need a fixed application URL on Umbraco 18.3+.
+      Umbraco__CMS__WebRouting__UmbracoApplicationUrl: https://localhost:44331
       ADMIN_EMAIL: admin@example.test
       ADMIN_PASSWORD: 'Ci-Admin-Only-Pw-1!'
       MANAGER_EMAIL: morgan@example.test
@@ -115,12 +116,16 @@ jobs:
         if: matrix.leg == 'latest'
         run: dotnet restore demo/Umbraco.Community.ArchivedUsers.DemoSite "-p:UmbracoDemoVersion=18.*" --force-evaluate -p:RestoreLockedMode=false
 
+      # Kestrel needs a certificate for HTTPS; the dev certificate is enough (Playwright ignores HTTPS errors).
+      - name: Create the HTTPS dev certificate
+        run: dotnet dev-certs https
+
       - name: Start the demo site
         run: |
           start() {
-            dotnet run --project demo/Umbraco.Community.ArchivedUsers.DemoSite --no-restore --no-launch-profile --urls http://localhost:28331 \
+            dotnet run --project demo/Umbraco.Community.ArchivedUsers.DemoSite --no-restore --no-launch-profile --urls https://localhost:44331 \
               ${{ matrix.leg == 'latest' && '"-p:UmbracoDemoVersion=18.*"' || '' }} >> demo.log 2>&1 &
-            for i in $(seq 1 120); do curl -sf -o /dev/null http://localhost:28331/umbraco && return 0; sleep 2; done
+            for i in $(seq 1 120); do curl -skf -o /dev/null https://localhost:44331/umbraco && return 0; sleep 2; done
             return 1
           }
           # First boot installs Umbraco unattended; the restart runs the demo seeder against the installed site.
