@@ -90,9 +90,10 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
                 }
                 catch (Exception ex)
                 {
-                    // Per user, never for the whole call: the other users keep their results (review C-6).
-                    _logger.LogError(ex, "Archiving user {UserKey} failed", key);
-                    result = new UserArchiveResult(key, ArchiveResultStatus.Failed);
+                    // Per user, never for the whole call: the other users keep their results (review C-6). Logged by
+                    // key and exception type only: exception text can carry SQL parameters such as names (A2-2).
+                    _logger.LogError("Archiving user {UserKey} failed ({ExceptionType})", key, ex.GetType().Name);
+                    result = await ResultAfterArchiveFailureAsync(key);
                 }
 
                 results.Add(result);
@@ -100,7 +101,15 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
 
             if (archived is not null)
             {
-                await _events.PublishAsync(archived);
+                try
+                {
+                    await _events.PublishAsync(archived);
+                }
+                catch (Exception ex)
+                {
+                    // The user is archived; a failing subscriber must not fail the rest of the batch (A2-3).
+                    _logger.LogError("A UserArchived subscriber failed for {UserKey} ({ExceptionType})", key, ex.GetType().Name);
+                }
             }
         }
 
@@ -177,16 +186,40 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
                 // Accepted gap (docs/design.md 7.2): disabled but not archived. Safe, because the user is disabled
                 // and still visible; a retry archives them with wasDisabledBefore = true. The status says so, so the
                 // admin is not told Umbraco refused (review C-7).
-                _logger.LogError(ex, "User {UserKey} was disabled but not archived", key);
+                _logger.LogError("User {UserKey} was disabled but not archived ({ExceptionType})", key, ex.GetType().Name);
                 return (new UserArchiveResult(key, ArchiveResultStatus.DisabledNotArchived), null);
             }
 
-            _logger.LogError(ex, "User {UserKey} could not be archived", key);
+            _logger.LogError("User {UserKey} could not be archived ({ExceptionType})", key, ex.GetType().Name);
             return (new UserArchiveResult(key, ArchiveResultStatus.Failed), null);
         }
 
         await WriteCoreAuditAsync(performer.Key, target, ArchiveAuditAction.Archived, source);
         return (new UserArchiveResult(key, ArchiveResultStatus.Archived), new UserArchivedNotification(archiveEvent, _messagesFactory.Get()));
+    }
+
+    /// <summary>
+    /// After an unexpected failure, report what is true now rather than guess (review A2-1): core can commit a disable
+    /// and then throw, for example from a third-party UserSaved handler after the commit.
+    /// </summary>
+    private async Task<UserArchiveResult> ResultAfterArchiveFailureAsync(Guid key)
+    {
+        try
+        {
+            IUser? user = await _userService.GetAsync(key);
+            if (user is null || !UserStateRules.IsDisabled(user))
+            {
+                return new UserArchiveResult(key, ArchiveResultStatus.Failed);
+            }
+
+            return await ReadRecordAsync(key) is null
+                ? new UserArchiveResult(key, ArchiveResultStatus.DisabledNotArchived)
+                : new UserArchiveResult(key, ArchiveResultStatus.Archived);
+        }
+        catch (Exception)
+        {
+            return new UserArchiveResult(key, ArchiveResultStatus.Failed);
+        }
     }
 
     /// <summary>

@@ -2,6 +2,7 @@ import { archivedUsersApi, type ArchivedUsersConfigResponseModel } from '../api/
 import { ARCHIVED_USERS_ARCHIVE_STATUS_CONTEXT } from './archive-status.context-token.js';
 import { cacheOnSuccess } from './cache-on-success.js';
 import { needsRefresh } from './freshness.js';
+import { latestOnly } from './latest-only.js';
 import { UmbContextBase } from '@umbraco-cms/backoffice/class-api';
 import type { UmbControllerHost } from '@umbraco-cms/backoffice/controller-api';
 import { UmbObjectState } from '@umbraco-cms/backoffice/observable-api';
@@ -25,6 +26,8 @@ export class ArchivedUsersArchiveStatusContext extends UmbContextBase {
   #loading?: Promise<void>;
   #loadedAt?: number;
   #failedLoads = 0;
+  #retryTimer?: ReturnType<typeof setTimeout>;
+  #loads = latestOnly();
   #config = cacheOnSuccess(() => archivedUsersApi.config(this).then(({ data }) => data));
 
   constructor(host: UmbControllerHost) {
@@ -52,23 +55,33 @@ export class ArchivedUsersArchiveStatusContext extends UmbContextBase {
    * whose 404 for "not archived" would show as a console error on every user editor (Task 13 verification).
    */
   async refresh(_unique?: string): Promise<void> {
+    const load = this.#loads.start();
     const statuses: Record<string, ArchiveStatus> = {};
     const take = 1000;
     for (let skip = 0; ; skip += take) {
-      const { data } = await archivedUsersApi.list(this, { skip, take });
+      const { data } = await archivedUsersApi.listQuietly(this, { skip, take });
       if (!data) {
         // Leave the previous state; conditions keep their last answer. A failed first load would otherwise leave
         // both actions hidden until another user is opened, so retry it a few times (review C-9).
-        if (this.#loadedAt === undefined && this.#failedLoads++ < 3) setTimeout(() => this.#ensure(''), 2_000);
+        if (this.#loadedAt === undefined && this.#failedLoads++ < 3) {
+          clearTimeout(this.#retryTimer);
+          this.#retryTimer = setTimeout(() => this.#ensure(''), 2_000);
+        }
         return;
       }
       for (const item of data.items) statuses[item.user.id] = { isArchived: true, isStale: item.stale };
       if (skip + take >= data.total) break;
     }
 
+    if (!this.#loads.isLatest(load)) return; // a newer load started; let it write (review A2-5)
     this.#loadedAt = Date.now();
     this.#failedLoads = 0;
     this.#state.setValue({ loaded: true, statuses });
+  }
+
+  override destroy(): void {
+    clearTimeout(this.#retryTimer);
+    super.destroy();
   }
 
   /** Package settings, fetched once per session (a failed fetch is retried on the next call). */

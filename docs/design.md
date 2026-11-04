@@ -543,7 +543,7 @@ Trust boundaries (for `security-analyst`):
 | GET | `archived-users/audit/export` | same filters | `text/csv` | v0.2 |
 | GET | `archived-users/access-review/export` | | `text/csv` | v0.2 |
 
-- Per-user status values (string enum): `Archived`, `Unarchived`, `Self`, `Invited`, `AlreadyArchived`, `NotArchived`, `NotPermitted`, `NotFound`, `Cancelled`, `CoreRefused:<UserOperationStatus>` (architect's call on the exact set). `NotFound` is returned only to admins; a non-admin gets `NotPermitted` for unknown and non-visible keys alike (AU-16).
+- Per-user status values (string enum): `Archived`, `Unarchived`, `Self`, `Invited`, `AlreadyArchived`, `NotArchived`, `NotPermitted`, `NotFound`, `Cancelled`, `CoreRefused:<UserOperationStatus>`, and from 0.2 `DisabledNotArchived` (the user was disabled but the record could not be saved; archive again to finish, and the retry records them as already disabled, so a later unarchive keeps them disabled) and `Failed` (an unexpected per-user failure, logged by key; try again). After a failure the result reports the state as re-read, so a change that did happen is not reported as a failure (architect's call on the exact set). `NotFound` is returned only to admins; a non-admin gets `NotPermitted` for unknown and non-visible keys alike (AU-16).
 - Every user-returning read goes through `FilterAsync` or a visibility check. Non-admins never get admin data.
 - 400 on validation errors as `ProblemDetails`. 403 from the policy. Request bodies are JSON only (415 otherwise); unknown body fields such as `source`, `performerKey` or `archivedUtc` are ignored (AU-12, AU-14).
 - v0.2 audit and export endpoints follow the F10 visibility rule; `userId` for a non-visible user returns an empty page (AU-08).

@@ -36,9 +36,10 @@ internal sealed partial class ArchivedUserService
                 }
                 catch (Exception ex)
                 {
-                    // Per user, never for the whole call (review C-6). The scope was not completed, so nothing changed.
-                    _logger.LogError(ex, "Unarchiving user {UserKey} failed", key);
-                    result = new UserArchiveResult(key, ArchiveResultStatus.Failed);
+                    // Per user, never for the whole call (review C-6). Usually the scope was not completed and nothing
+                    // changed, but a post-commit handler can throw after the change, so report what is true (A2-1).
+                    _logger.LogError("Unarchiving user {UserKey} failed ({ExceptionType})", key, ex.GetType().Name);
+                    result = await ResultAfterUnarchiveFailureAsync(key);
                 }
 
                 results.Add(result);
@@ -46,11 +47,34 @@ internal sealed partial class ArchivedUserService
 
             if (unarchived is not null)
             {
-                await _events.PublishAsync(unarchived);
+                try
+                {
+                    await _events.PublishAsync(unarchived);
+                }
+                catch (Exception ex)
+                {
+                    // The user is unarchived; a failing subscriber must not fail the rest of the batch (A2-3).
+                    _logger.LogError("A UserUnarchived subscriber failed for {UserKey} ({ExceptionType})", key, ex.GetType().Name);
+                }
             }
         }
 
         return results;
+    }
+
+    /// <summary>Unarchive only throws for a user who had a record, so a missing record now means it was removed (A2-1).</summary>
+    private async Task<UserArchiveResult> ResultAfterUnarchiveFailureAsync(Guid key)
+    {
+        try
+        {
+            return await ReadRecordAsync(key) is null
+                ? new UserArchiveResult(key, ArchiveResultStatus.Unarchived)
+                : new UserArchiveResult(key, ArchiveResultStatus.Failed);
+        }
+        catch (Exception)
+        {
+            return new UserArchiveResult(key, ArchiveResultStatus.Failed);
+        }
     }
 
     private async Task<(UserArchiveResult Result, UserUnarchivedNotification? Notification)> UnarchiveOneAsync(IUser performer, Guid key, bool? enable, ArchiveSource source)
