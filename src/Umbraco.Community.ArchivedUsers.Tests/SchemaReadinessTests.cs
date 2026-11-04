@@ -61,7 +61,8 @@ public class SchemaReadinessTests
 
         await SavedHandler().HandleAsync(new UserSavedNotification(EnabledUser(), new EventMessages()), CancellationToken.None);
 
-        await _repository.ReceivedWithAnyArgs(1).DeleteAsync(default);
+        // The handler's first database call is the record read; it only deletes when a record exists.
+        await _repository.ReceivedWithAnyArgs(1).GetAsync(default);
     }
 
     [Fact]

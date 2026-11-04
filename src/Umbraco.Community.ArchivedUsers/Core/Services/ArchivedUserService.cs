@@ -80,16 +80,36 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
             // One lock per user, held from the state read to the record write (P6). Never two at once.
             // The Archived notification is published after the lock is released: the stripes are not re-entrant,
             // so a subscriber that archives any user on the same stripe would otherwise deadlock (review BS-3).
-            UserArchivedNotification? archived;
+            UserArchivedNotification? archived = null;
             using (await _locks.AcquireAsync(key))
             {
-                (UserArchiveResult result, archived) = await ArchiveOneAsync(performer!, key, reason, source);
+                UserArchiveResult result;
+                try
+                {
+                    (result, archived) = await ArchiveOneAsync(performer!, key, reason, source);
+                }
+                catch (Exception ex)
+                {
+                    // Per user, never for the whole call: the other users keep their results (review C-6). Logged by
+                    // key and exception type only: exception text can carry SQL parameters such as names (A2-2).
+                    _logger.LogError("Archiving user {UserKey} failed ({ExceptionType})", key, ex.GetType().Name);
+                    result = await ResultAfterArchiveFailureAsync(key);
+                }
+
                 results.Add(result);
             }
 
             if (archived is not null)
             {
-                await _events.PublishAsync(archived);
+                try
+                {
+                    await _events.PublishAsync(archived);
+                }
+                catch (Exception ex)
+                {
+                    // The user is archived; a failing subscriber must not fail the rest of the batch (A2-3).
+                    _logger.LogError("A UserArchived subscriber failed for {UserKey} ({ExceptionType})", key, ex.GetType().Name);
+                }
             }
         }
 
@@ -164,19 +184,42 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
             if (!wasDisabledBefore)
             {
                 // Accepted gap (docs/design.md 7.2): disabled but not archived. Safe, because the user is disabled
-                // and still visible; a retry archives them with wasDisabledBefore = true.
-                _logger.LogError(ex, "User {UserKey} was disabled but not archived", key);
-            }
-            else
-            {
-                _logger.LogError(ex, "User {UserKey} could not be archived", key);
+                // and still visible; a retry archives them with wasDisabledBefore = true. The status says so, so the
+                // admin is not told Umbraco refused (review C-7).
+                _logger.LogError("User {UserKey} was disabled but not archived ({ExceptionType})", key, ex.GetType().Name);
+                return (new UserArchiveResult(key, ArchiveResultStatus.DisabledNotArchived), null);
             }
 
-            return (new UserArchiveResult(key, ArchiveResultStatus.CoreRefused), null);
+            _logger.LogError("User {UserKey} could not be archived ({ExceptionType})", key, ex.GetType().Name);
+            return (new UserArchiveResult(key, ArchiveResultStatus.Failed), null);
         }
 
         await WriteCoreAuditAsync(performer.Key, target, ArchiveAuditAction.Archived, source);
         return (new UserArchiveResult(key, ArchiveResultStatus.Archived), new UserArchivedNotification(archiveEvent, _messagesFactory.Get()));
+    }
+
+    /// <summary>
+    /// After an unexpected failure, report what is true now rather than guess (review A2-1): core can commit a disable
+    /// and then throw, for example from a third-party UserSaved handler after the commit.
+    /// </summary>
+    private async Task<UserArchiveResult> ResultAfterArchiveFailureAsync(Guid key)
+    {
+        try
+        {
+            IUser? user = await _userService.GetAsync(key);
+            if (user is null || !UserStateRules.IsDisabled(user))
+            {
+                return new UserArchiveResult(key, ArchiveResultStatus.Failed);
+            }
+
+            return await ReadRecordAsync(key) is null
+                ? new UserArchiveResult(key, ArchiveResultStatus.DisabledNotArchived)
+                : new UserArchiveResult(key, ArchiveResultStatus.Archived);
+        }
+        catch (Exception)
+        {
+            return new UserArchiveResult(key, ArchiveResultStatus.Failed);
+        }
     }
 
     /// <summary>

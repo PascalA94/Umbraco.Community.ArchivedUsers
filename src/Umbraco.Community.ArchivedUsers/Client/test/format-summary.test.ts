@@ -21,7 +21,7 @@ describe('formatSummary (P12c)', () => {
   it('formats every skip reason in a fixed order, each from its own key', () => {
     const results = [...SKIP_REASONS].reverse().map((reason) => r(reason === 'CoreRefused' ? 'CoreRefused:MissingUser' : reason));
     const lines = formatSummary(summariseResults(results), 'archive', t).slice(1);
-    expect(lines).toHaveLength(8);
+    expect(lines).toHaveLength(10);
     expect(lines).toEqual([
       "1 skipped: you can't archive yourself",
       "1 skipped: invited users can't be archived",
@@ -31,6 +31,8 @@ describe('formatSummary (P12c)', () => {
       '1 skipped: user not found',
       '1 skipped: cancelled',
       '1 skipped: Umbraco refused the change',
+      '1 skipped: disabled but not archived, archive again to finish',
+      '1 skipped: something went wrong, try again',
     ]);
   });
 

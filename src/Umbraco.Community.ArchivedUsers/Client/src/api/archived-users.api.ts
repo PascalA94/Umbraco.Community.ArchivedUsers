@@ -25,6 +25,9 @@ export const archivedUsersApi = {
 
   list: (host: UmbControllerHost, query: { skip: number; take: number; filter?: string; orderBy?: ArchivedUserOrder; orderDirection?: Direction }) =>
     tryExecute(host, getArchivedUsers({ client, query })),
+  /** The archive-status background reload: errors stay quiet, so a failing server can't stack toasts (review A2-4). */
+  listQuietly: (host: UmbControllerHost, query: { skip: number; take: number }) =>
+    tryExecute(host, getArchivedUsers({ client, query }), { disableNotifications: true }),
 
   archive: (host: UmbControllerHost, userIds: string[], reason?: string) =>
     tryExecute(host, postArchivedUsersArchive({ client, body: { userIds, reason: reason ?? null } })),

@@ -29,7 +29,10 @@ public sealed class UserArchiveResultResponseModel
 {
     public required Guid Id { get; init; }
 
-    /// <summary>A status name, or <c>CoreRefused:&lt;UserOperationStatus&gt;</c>.</summary>
+    /// <summary>
+    /// A status name (including <c>DisabledNotArchived</c> and <c>Failed</c> from 0.2), or
+    /// <c>CoreRefused:&lt;UserOperationStatus&gt;</c>.
+    /// </summary>
     public required string Status { get; init; }
 
     /// <summary>A cancel message from a notification handler. User text: render as text only (AU-04).</summary>

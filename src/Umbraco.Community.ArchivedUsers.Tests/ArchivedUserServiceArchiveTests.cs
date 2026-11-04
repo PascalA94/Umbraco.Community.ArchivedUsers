@@ -321,14 +321,14 @@ public class ArchivedUserServiceArchiveTests
 
     /// <summary>P10: the accepted gap (design 7.2). The user is disabled but not archived; that fails safe.</summary>
     [Fact]
-    public async Task Scope_failure_after_disable_logs_one_Error_and_returns_CoreRefused_without_CoreStatus()
+    public async Task Scope_failure_after_disable_logs_one_Error_and_returns_DisabledNotArchived()
     {
         IUser admin = _f.AddAdmin(), target = _f.AddUser();
         _f.Repository.TryInsertAsync(Arg.Any<ArchivedUserRecord>()).ThrowsAsync(new InvalidOperationException("db down"));
 
         IReadOnlyList<UserArchiveResult> results = await Archive(admin, target);
 
-        Assert.Equal(ArchiveResultStatus.CoreRefused, results[0].Status);
+        Assert.Equal(ArchiveResultStatus.DisabledNotArchived, results[0].Status); // review C-7
         Assert.Null(results[0].CoreStatus);
         Assert.Equal(1, _f.LogCount(LogLevel.Error));
         Assert.Contains(target.Key.ToString(), string.Join(" ", _f.LogText()));
