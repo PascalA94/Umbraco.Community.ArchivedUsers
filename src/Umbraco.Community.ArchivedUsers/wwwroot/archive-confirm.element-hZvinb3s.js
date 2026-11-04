@@ -1,31 +1,31 @@
-import { nothing as o, html as i, repeat as b, css as z, state as g, customElement as y } from "@umbraco-cms/backoffice/external/lit";
-import { UmbModalBaseElement as C } from "@umbraco-cms/backoffice/modal";
-var w = Object.defineProperty, E = Object.getOwnPropertyDescriptor, p = (e) => {
+import { nothing as n, html as i, repeat as b, css as z, state as g, customElement as y } from "@umbraco-cms/backoffice/external/lit";
+import { UmbModalBaseElement as A } from "@umbraco-cms/backoffice/modal";
+var C = Object.defineProperty, w = Object.getOwnPropertyDescriptor, p = (e) => {
   throw TypeError(e);
 }, v = (e, t, a, l) => {
-  for (var n = l > 1 ? void 0 : l ? E(t, a) : t, h = e.length - 1, u; h >= 0; h--)
-    (u = e[h]) && (n = (l ? u(t, a, n) : u(n)) || n);
-  return l && n && w(t, a, n), n;
-}, M = (e, t, a) => t.has(e) || p("Cannot " + a), x = (e, t, a) => t.has(e) ? p("Cannot add the same private member more than once") : t instanceof WeakSet ? t.add(e) : t.set(e, a), s = (e, t, a) => (M(e, t, "access private method"), a), r, d, m, _, f, $, U;
-const A = 500;
-let c = class extends C {
+  for (var o = l > 1 ? void 0 : l ? w(t, a) : t, h = e.length - 1, u; h >= 0; h--)
+    (u = e[h]) && (o = (l ? u(t, a, o) : u(o)) || o);
+  return l && o && C(t, a, o), o;
+}, x = (e, t, a) => t.has(e) || p("Cannot " + a), E = (e, t, a) => t.has(e) ? p("Cannot add the same private member more than once") : t instanceof WeakSet ? t.add(e) : t.set(e, a), s = (e, t, a) => (x(e, t, "access private method"), a), r, d, m, _, f, $, U;
+const M = 500;
+let c = class extends A {
   constructor() {
-    super(...arguments), x(this, r), this._reason = "";
+    super(...arguments), E(this, r), this._reason = "";
   }
   render() {
-    if (!this.data) return o;
+    if (!this.data) return n;
     const e = this.data, t = e.mode === "cleanUp" && e.count === 0;
     return i`
       <uui-dialog-layout headline=${s(this, r, $).call(this)}>
-        ${e.mode === "archive" ? i`<p>${this.localize.term("archivedUsers_archiveIntro")}</p>` : o}
-        ${e.mode === "unarchive" ? i`<p>${this.localize.term("archivedUsers_unarchiveIntro")}</p>` : o}
-        ${e.mode === "cleanUp" ? i`<p id="count">${t ? this.localize.term("archivedUsers_cleanUpNone") : this.localize.term("archivedUsers_cleanUpCount", e.count)}</p>` : o}
+        ${e.mode === "archive" ? i`<p>${this.localize.term("archivedUsers_archiveIntro")}</p>` : n}
+        ${e.mode === "unarchive" ? i`<p>${this.localize.term("archivedUsers_unarchiveIntro")}</p>` : n}
+        ${e.mode === "cleanUp" ? i`<p id="count">${t ? this.localize.term("archivedUsers_cleanUpNone") : this.localize.term("archivedUsers_cleanUpCount", e.count)}</p>` : n}
         ${e.sampleNames?.length ? i`<p>${this.localize.term("archivedUsers_cleanUpSample")}</p>
               <ul id="sample">
                 ${b(e.sampleNames, (a) => a, (a) => i`<li>${a}</li>`)}
-              </ul>` : o}
-        ${e.showNeverLoggedInHint ? i`<p id="hint">${this.localize.term("archivedUsers_neverLoggedInHint")}</p>` : o}
-        ${s(this, r, m).call(this) && !t ? s(this, r, U).call(this, e.requireReason) : o}
+              </ul>` : n}
+        ${e.showNeverLoggedInHint ? i`<p id="hint">${this.localize.term("archivedUsers_neverLoggedInHint")}</p>` : n}
+        ${s(this, r, m).call(this) && !t ? s(this, r, U).call(this, e.requireReason) : n}
         ${t ? i`<uui-button slot="actions" label=${this.localize.term("archivedUsers_close")} @click=${this._rejectModal}></uui-button>` : i`<uui-button slot="actions" label=${this.localize.term("archivedUsers_cancel")} @click=${this._rejectModal}></uui-button>
               <uui-button
                 slot="actions"
@@ -74,7 +74,7 @@ U = function(e) {
           id="reason"
           label=${this.localize.term("archivedUsers_reason")}
           aria-describedby="reason-help"
-          maxlength=${A}
+          maxlength=${M}
           ?required=${e}
           .value=${this._reason}
           @input=${s(this, r, _)}></uui-textarea>
@@ -91,6 +91,10 @@ c.styles = [
       }
       #sample {
         margin-top: 0;
+      }
+      /* The form item's default description colour fails WCAG AA contrast (a11y.spec.ts). */
+      #reason-help {
+        color: var(--uui-color-text);
       }
     `
 ];

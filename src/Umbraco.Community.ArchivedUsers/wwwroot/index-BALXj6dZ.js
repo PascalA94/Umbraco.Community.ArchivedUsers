@@ -74,7 +74,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     type: "modal",
     alias: l,
     name: "Archived Users Archive Confirm Modal",
-    element: () => import("./archive-confirm.element-BpmWGceP.js")
+    element: () => import("./archive-confirm.element-hZvinb3s.js")
   },
   {
     type: "entityAction",
@@ -83,7 +83,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Archive User",
     weight: 450,
     forEntityTypes: [e],
-    api: () => import("./archive.action-DdeQD2O7.js"),
+    api: () => import("./archive.action-vl-Vy9A6.js"),
     meta: { icon: "icon-box", label: "#archivedUsers_archive" },
     conditions: [{ alias: n }]
   },
@@ -94,7 +94,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Unarchive User",
     weight: 449,
     forEntityTypes: [e],
-    api: () => import("./unarchive.action-Cx9TluZU.js"),
+    api: () => import("./unarchive.action-C1vyzvum.js"),
     meta: { icon: "icon-undo", label: "#archivedUsers_unarchive" },
     conditions: [{ alias: c }]
   },
@@ -105,7 +105,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Archive Users",
     weight: 50,
     forEntityTypes: [e],
-    api: () => import("./archive.bulk-action-Bx1zkbY6.js"),
+    api: () => import("./archive.bulk-action-DuLq1dWQ.js"),
     meta: { icon: "icon-box", label: "#archivedUsers_archive" },
     conditions: [{ alias: i, match: t }]
   },
@@ -116,7 +116,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Unarchive Users",
     weight: 50,
     forEntityTypes: [e],
-    api: () => import("./unarchive.bulk-action-Daj7CQIc.js"),
+    api: () => import("./unarchive.bulk-action-BTRktzff.js"),
     meta: { icon: "icon-undo", label: "#archivedUsers_unarchive" },
     conditions: [{ alias: i, match: s }]
   },
@@ -126,7 +126,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     alias: "ArchivedUsers.CollectionAction.User.ArchiveDisabled",
     name: "Archive Disabled Users",
     weight: 50,
-    api: () => import("./archive-disabled.action-C2EwQ3ad.js"),
+    api: () => import("./archive-disabled.action-Dl_EHue6.js"),
     meta: { label: "#archivedUsers_archiveDisabled" },
     // Same conditions as core's Create action: the Users collection, never inside a picker modal (F3).
     conditions: [

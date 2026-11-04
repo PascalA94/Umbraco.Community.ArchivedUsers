@@ -109,6 +109,10 @@ export class ArchivedUsersArchiveConfirmModalElement extends UmbModalBaseElement
       #sample {
         margin-top: 0;
       }
+      /* The form item's default description colour fails WCAG AA contrast (a11y.spec.ts). */
+      #reason-help {
+        color: var(--uui-color-text);
+      }
     `,
   ];
 }

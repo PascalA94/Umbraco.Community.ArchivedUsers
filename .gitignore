@@ -53,3 +53,4 @@ CLAUDE.local.md
 
 # dotnet test --blame output (hang dumps)
 **/TestResults/
+tests/e2e/playwright-report/
