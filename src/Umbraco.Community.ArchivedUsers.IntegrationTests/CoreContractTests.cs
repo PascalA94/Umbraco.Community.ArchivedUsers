@@ -166,6 +166,21 @@ public class CoreContractTests : UmbracoIntegrationTest
         Assert.That(result.Result.Items.Select(u => u.Key), Does.Not.Contain(Constants.Security.SuperUserKey));
     }
 
+    /// <summary>
+    /// The list filter matches core's action by name. If core renames it (Filter2 becomes Filter in v20), hiding
+    /// stops, which is core behaviour, not a leak. This fails loudly so the filter is updated (docs/design.md 11).
+    /// </summary>
+    [Test]
+    [Category("Tripwire")]
+    public void Filter_user_action_name_is_Filter2()
+    {
+        Type controller = typeof(Umbraco.Cms.Api.Management.Controllers.User.Filter.FilterUserFilterController);
+        System.Reflection.MethodInfo? live = controller.GetMethod("Filter2");
+        Assert.That(live, Is.Not.Null);
+        Assert.That(live!.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.HttpGetAttribute), false), Is.Not.Empty);
+        Assert.That(controller.GetMethod("Filter")!.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.NonActionAttribute), false), Is.Not.Empty);
+    }
+
     // ---- S4 / U3 (recording) ----
 
     [Test]
