@@ -115,6 +115,7 @@ jobs:
       fail-on-vuln: true
       upload-sarif: false
       scan-args: |-
+        --config=./osv-scanner.toml
         --recursive
         ./
 

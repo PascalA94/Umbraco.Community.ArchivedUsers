@@ -1,0 +1,3 @@
+# Verified false positive: the fake OAuth client secret of the T5 test API user in a throwaway test database.
+# Later commits mark the line with gitleaks:allow; this covers the commit that added it before the marker.
+77c352b792ae4d68c0b0a187f981e39c05e43363:src/Umbraco.Community.ArchivedUsers.IntegrationTests/Api/ArchivedUsersSecurityTests.cs:generic-api-key:242
