@@ -24,7 +24,7 @@
     <PackageProjectUrl>https://github.com/PascalA94/Umbraco.Community.ArchivedUsers</PackageProjectUrl>
     <RepositoryUrl>https://github.com/PascalA94/Umbraco.Community.ArchivedUsers</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>umbraco;umbraco-marketplace;users;archive;offboarding;audit;audit-trail;security;governance;plugin;package</PackageTags>
+    <PackageTags>umbraco;umbraco-marketplace;users;user-management;archive;offboarding;backoffice;audit;security;governance;plugin;package</PackageTags>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 

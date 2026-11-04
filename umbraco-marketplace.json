@@ -12,5 +12,5 @@
     "Name": "Pascal Meyer",
     "Url": "https://github.com/PascalA94"
   },
-  "Tags": ["users", "archive", "offboarding", "audit", "audit-trail", "security", "governance", "backoffice"]
+  "Tags": ["users", "user-management", "archive", "offboarding", "backoffice", "audit", "security", "governance"]
 }
