@@ -4,6 +4,7 @@ using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Events;
 using Umbraco.Cms.Core.Notifications;
 using Umbraco.Cms.Core.Services;
+using Umbraco.Community.ArchivedUsers.Core.Migrations;
 using Umbraco.Community.ArchivedUsers.Core.Services;
 
 namespace Umbraco.Community.ArchivedUsers.Core.Handlers;
@@ -17,12 +18,14 @@ internal sealed class ReconcileOnStartupHandler : INotificationAsyncHandler<Umbr
 {
     private readonly IRuntimeState _runtimeState;
     private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ArchivedUsersSchemaState _schema;
     private readonly ILogger<ReconcileOnStartupHandler> _logger;
 
-    public ReconcileOnStartupHandler(IRuntimeState runtimeState, IServiceScopeFactory scopeFactory, ILogger<ReconcileOnStartupHandler> logger)
+    public ReconcileOnStartupHandler(IRuntimeState runtimeState, IServiceScopeFactory scopeFactory, ArchivedUsersSchemaState schema, ILogger<ReconcileOnStartupHandler> logger)
     {
         _runtimeState = runtimeState;
         _scopeFactory = scopeFactory;
+        _schema = schema;
         _logger = logger;
     }
 
@@ -35,6 +38,13 @@ internal sealed class ReconcileOnStartupHandler : INotificationAsyncHandler<Umbr
 
         try
         {
+            // On a fresh install the package tables don't exist yet when this runs, and core logs the failed query
+            // at Error level. Nothing can be stale before the tables exist, so skip until the migration has run.
+            if (!_schema.IsReady())
+            {
+                return;
+            }
+
             using IServiceScope scope = _scopeFactory.CreateScope();
             int removed = await scope.ServiceProvider.GetRequiredService<IArchivedUserService>().ReconcileAsync(cancellationToken);
             if (removed > 0)

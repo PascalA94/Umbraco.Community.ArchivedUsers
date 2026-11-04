@@ -1,5 +1,6 @@
 import { archivedUsersApi, type ArchivedUsersConfigResponseModel } from '../api/archived-users.api.js';
 import { ARCHIVED_USERS_ARCHIVE_STATUS_CONTEXT } from './archive-status.context-token.js';
+import { cacheOnSuccess } from './cache-on-success.js';
 import { UmbContextBase } from '@umbraco-cms/backoffice/class-api';
 import type { UmbControllerHost } from '@umbraco-cms/backoffice/controller-api';
 import { UmbObjectState } from '@umbraco-cms/backoffice/observable-api';
@@ -15,10 +16,11 @@ interface ArchiveStatus {
  * observe it, so they re-evaluate as soon as an action refreshes a user (docs/spikes.md S6).
  */
 export class ArchivedUsersArchiveStatusContext extends UmbContextBase {
-  #statuses = new UmbObjectState<Record<string, ArchiveStatus | undefined>>({});
-  #loaded = false;
+  // The loaded flag lives in the observed state: with no archived users the map stays {}, so a flag outside the
+  // state would never emit and the conditions would wait forever (Task 18 finding on a fresh site).
+  #state = new UmbObjectState<{ loaded: boolean; statuses: Record<string, ArchiveStatus | undefined> }>({ loaded: false, statuses: {} });
   #loading?: Promise<void>;
-  #config?: Promise<ArchivedUsersConfigResponseModel | undefined>;
+  #config = cacheOnSuccess(() => archivedUsersApi.config(this).then(({ data }) => data));
 
   constructor(host: UmbControllerHost) {
     super(host, ARCHIVED_USERS_ARCHIVE_STATUS_CONTEXT);
@@ -26,18 +28,18 @@ export class ArchivedUsersArchiveStatusContext extends UmbContextBase {
 
   observeIsArchived(unique: string) {
     this.#ensure(unique);
-    return this.#statuses.asObservablePart((s) => s[unique]?.isArchived ?? false);
+    return this.#state.asObservablePart((s) => s.statuses[unique]?.isArchived ?? false);
   }
 
   observeIsStale(unique: string) {
     this.#ensure(unique);
-    return this.#statuses.asObservablePart((s) => s[unique]?.isStale ?? false);
+    return this.#state.asObservablePart((s) => s.statuses[unique]?.isStale ?? false);
   }
 
   /** Whether the status for this user has been loaded yet. */
   observeIsLoaded(unique: string) {
     this.#ensure(unique);
-    return this.#statuses.asObservablePart(() => this.#loaded);
+    return this.#state.asObservablePart((s) => s.loaded);
   }
 
   /**
@@ -54,18 +56,16 @@ export class ArchivedUsersArchiveStatusContext extends UmbContextBase {
       if (skip + take >= data.total) break;
     }
 
-    this.#loaded = true;
-    this.#statuses.setValue(statuses);
+    this.#state.setValue({ loaded: true, statuses });
   }
 
-  /** Package settings, fetched once per session. */
+  /** Package settings, fetched once per session (a failed fetch is retried on the next call). */
   config(): Promise<ArchivedUsersConfigResponseModel | undefined> {
-    this.#config ??= archivedUsersApi.config(this).then(({ data }) => data);
-    return this.#config;
+    return this.#config();
   }
 
   #ensure(_unique: string) {
-    if (this.#loaded || this.#loading) return;
+    if (this.#state.getValue().loaded || this.#loading) return;
     this.#loading = this.refresh().finally(() => (this.#loading = undefined));
   }
 }

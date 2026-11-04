@@ -3,6 +3,7 @@ using Umbraco.Cms.Core.Events;
 using Umbraco.Cms.Core.Models.Membership;
 using Umbraco.Cms.Core.Notifications;
 using Umbraco.Cms.Core.Scoping;
+using Umbraco.Community.ArchivedUsers.Core.Migrations;
 using Umbraco.Community.ArchivedUsers.Core.Persistence;
 
 namespace Umbraco.Community.ArchivedUsers.Core.Handlers;
@@ -12,17 +13,24 @@ internal sealed class UserDeletedArchiveCleanupHandler : INotificationAsyncHandl
 {
     private readonly IArchivedUserRepository _repository;
     private readonly ICoreScopeProvider _scopeProvider;
+    private readonly ArchivedUsersSchemaState _schema;
     private readonly ILogger<UserDeletedArchiveCleanupHandler> _logger;
 
-    public UserDeletedArchiveCleanupHandler(IArchivedUserRepository repository, ICoreScopeProvider scopeProvider, ILogger<UserDeletedArchiveCleanupHandler> logger)
+    public UserDeletedArchiveCleanupHandler(IArchivedUserRepository repository, ICoreScopeProvider scopeProvider, ArchivedUsersSchemaState schema, ILogger<UserDeletedArchiveCleanupHandler> logger)
     {
         _repository = repository;
         _scopeProvider = scopeProvider;
+        _schema = schema;
         _logger = logger;
     }
 
     public async Task HandleAsync(UserDeletedNotification notification, CancellationToken cancellationToken)
     {
+        if (!_schema.IsReady())
+        {
+            return;
+        }
+
         foreach (IUser user in notification.DeletedEntities)
         {
             try

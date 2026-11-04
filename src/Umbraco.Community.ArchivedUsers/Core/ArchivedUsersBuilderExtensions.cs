@@ -3,6 +3,7 @@ using Microsoft.Extensions.DependencyInjection.Extensions;
 using Umbraco.Cms.Core.DependencyInjection;
 using Umbraco.Cms.Core.Notifications;
 using Umbraco.Community.ArchivedUsers.Core.Handlers;
+using Umbraco.Community.ArchivedUsers.Core.Migrations;
 using Umbraco.Community.ArchivedUsers.Core.Configuration;
 using Umbraco.Community.ArchivedUsers.Core.Persistence;
 using Umbraco.Community.ArchivedUsers.Core.Services;
@@ -35,6 +36,7 @@ public static class ArchivedUsersBuilderExtensions
         // One lock table for the whole process: per-user locks only work if every scope shares them (P6).
         builder.Services.AddSingleton<IArchiveUserLocks, ArchiveUserLocks>();
         builder.Services.TryAddSingleton(TimeProvider.System);
+        builder.Services.AddSingleton<ArchivedUsersSchemaState>();
 
         builder.AddNotificationAsyncHandler<UserSavedNotification, UserSavedArchiveSyncHandler>();
         builder.AddNotificationAsyncHandler<UserDeletedNotification, UserDeletedArchiveCleanupHandler>();

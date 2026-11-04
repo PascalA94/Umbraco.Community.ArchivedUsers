@@ -4,6 +4,7 @@ using Umbraco.Cms.Core.Models.Membership;
 using Umbraco.Cms.Core.Notifications;
 using Umbraco.Cms.Core.Scoping;
 using Umbraco.Cms.Core.Security;
+using Umbraco.Community.ArchivedUsers.Core.Migrations;
 using Umbraco.Community.ArchivedUsers.Core.Models;
 using Umbraco.Community.ArchivedUsers.Core.Notifications;
 using Umbraco.Community.ArchivedUsers.Core.Persistence;
@@ -25,6 +26,7 @@ internal sealed class UserSavedArchiveSyncHandler : INotificationAsyncHandler<Us
     private readonly IEventAggregator _events;
     private readonly IEventMessagesFactory _messagesFactory;
     private readonly TimeProvider _time;
+    private readonly ArchivedUsersSchemaState _schema;
     private readonly ILogger<UserSavedArchiveSyncHandler> _logger;
 
     public UserSavedArchiveSyncHandler(
@@ -34,6 +36,7 @@ internal sealed class UserSavedArchiveSyncHandler : INotificationAsyncHandler<Us
         IEventAggregator events,
         IEventMessagesFactory messagesFactory,
         TimeProvider time,
+        ArchivedUsersSchemaState schema,
         ILogger<UserSavedArchiveSyncHandler> logger)
     {
         _repository = repository;
@@ -42,11 +45,17 @@ internal sealed class UserSavedArchiveSyncHandler : INotificationAsyncHandler<Us
         _events = events;
         _messagesFactory = messagesFactory;
         _time = time;
+        _schema = schema;
         _logger = logger;
     }
 
     public async Task HandleAsync(UserSavedNotification notification, CancellationToken cancellationToken)
     {
+        if (!_schema.IsReady())
+        {
+            return; // nothing can be archived before the tables exist
+        }
+
         foreach (IUser user in notification.SavedEntities.Where(u => !UserStateRules.IsDisabled(u)))
         {
             try

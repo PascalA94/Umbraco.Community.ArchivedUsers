@@ -25,15 +25,16 @@ export class ArchivedUsersCanArchiveCondition extends UmbConditionBase<UmbCondit
             return;
           }
 
-          const config = await status.config();
-          if (!config) {
-            this.permitted = false;
-            return;
-          }
-
           this.observe(
             observeMultiple([current.unique, current.isAdmin, workspace.unique, workspace.state, workspace.userGroupUniques]),
-            ([currentUnique, isAdmin, unique, state, groups]) => {
+            async ([currentUnique, isAdmin, unique, state, groups]) => {
+              // Looked up per change, so a config request that failed while signing in is retried.
+              const config = await status.config();
+              if (!config) {
+                this.permitted = false;
+                return;
+              }
+
               if (!unique || !currentUnique) {
                 this.permitted = false;
                 return;
