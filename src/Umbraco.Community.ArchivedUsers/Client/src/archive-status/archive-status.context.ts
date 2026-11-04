@@ -1,6 +1,7 @@
 import { archivedUsersApi, type ArchivedUsersConfigResponseModel } from '../api/archived-users.api.js';
 import { ARCHIVED_USERS_ARCHIVE_STATUS_CONTEXT } from './archive-status.context-token.js';
 import { cacheOnSuccess } from './cache-on-success.js';
+import { needsRefresh } from './freshness.js';
 import { UmbContextBase } from '@umbraco-cms/backoffice/class-api';
 import type { UmbControllerHost } from '@umbraco-cms/backoffice/controller-api';
 import { UmbObjectState } from '@umbraco-cms/backoffice/observable-api';
@@ -14,12 +15,16 @@ interface ArchiveStatus {
  * Global cache of the archived users the current user may see, keyed by user unique; a user who is absent is
  * not archived (or not visible, which hides the actions anyway). The CanArchive and IsArchived conditions
  * observe it, so they re-evaluate as soon as an action refreshes a user (docs/spikes.md S6).
+ * Opening a user editor reloads it once it is 30 seconds old, so another admin's archive or unarchive shows
+ * without a full page reload (review C-9).
  */
 export class ArchivedUsersArchiveStatusContext extends UmbContextBase {
   // The loaded flag lives in the observed state: with no archived users the map stays {}, so a flag outside the
   // state would never emit and the conditions would wait forever (Task 18 finding on a fresh site).
   #state = new UmbObjectState<{ loaded: boolean; statuses: Record<string, ArchiveStatus | undefined> }>({ loaded: false, statuses: {} });
   #loading?: Promise<void>;
+  #loadedAt?: number;
+  #failedLoads = 0;
   #config = cacheOnSuccess(() => archivedUsersApi.config(this).then(({ data }) => data));
 
   constructor(host: UmbControllerHost) {
@@ -51,11 +56,18 @@ export class ArchivedUsersArchiveStatusContext extends UmbContextBase {
     const take = 1000;
     for (let skip = 0; ; skip += take) {
       const { data } = await archivedUsersApi.list(this, { skip, take });
-      if (!data) return; // leave the previous state; conditions then keep their last answer
+      if (!data) {
+        // Leave the previous state; conditions keep their last answer. A failed first load would otherwise leave
+        // both actions hidden until another user is opened, so retry it a few times (review C-9).
+        if (this.#loadedAt === undefined && this.#failedLoads++ < 3) setTimeout(() => this.#ensure(''), 2_000);
+        return;
+      }
       for (const item of data.items) statuses[item.user.id] = { isArchived: true, isStale: item.stale };
       if (skip + take >= data.total) break;
     }
 
+    this.#loadedAt = Date.now();
+    this.#failedLoads = 0;
     this.#state.setValue({ loaded: true, statuses });
   }
 
@@ -65,7 +77,7 @@ export class ArchivedUsersArchiveStatusContext extends UmbContextBase {
   }
 
   #ensure(_unique: string) {
-    if (this.#state.getValue().loaded || this.#loading) return;
+    if (this.#loading || !needsRefresh(this.#loadedAt, Date.now())) return;
     this.#loading = this.refresh().finally(() => (this.#loading = undefined));
   }
 }

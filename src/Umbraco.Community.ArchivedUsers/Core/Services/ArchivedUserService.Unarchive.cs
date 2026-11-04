@@ -26,10 +26,21 @@ internal sealed partial class ArchivedUserService
         foreach (Guid key in userKeys)
         {
             // Published after the lock is released (review BS-3, see ArchiveAsync).
-            UserUnarchivedNotification? unarchived;
+            UserUnarchivedNotification? unarchived = null;
             using (await _locks.AcquireAsync(key))
             {
-                (UserArchiveResult result, unarchived) = await UnarchiveOneAsync(performer!, key, enable, source);
+                UserArchiveResult result;
+                try
+                {
+                    (result, unarchived) = await UnarchiveOneAsync(performer!, key, enable, source);
+                }
+                catch (Exception ex)
+                {
+                    // Per user, never for the whole call (review C-6). The scope was not completed, so nothing changed.
+                    _logger.LogError(ex, "Unarchiving user {UserKey} failed", key);
+                    result = new UserArchiveResult(key, ArchiveResultStatus.Failed);
+                }
+
                 results.Add(result);
             }
 

@@ -12,4 +12,8 @@ describe('summariseResults', () => {
     }));
   it('counts Unarchived as done', () => expect(summariseResults([r('Unarchived')]).done).toBe(1));
   it('returns zeros for an empty list', () => expect(summariseResults([])).toEqual({ done: 0, skipped: 0, skipReasons: {} }));
+
+  // Review C-7: these are not "Umbraco refused"; an unknown status must not be reported as one of them either.
+  it('counts DisabledNotArchived and Failed under their own reasons', () =>
+    expect(summariseResults([r('DisabledNotArchived'), r('Failed'), r('Failed')]).skipReasons).toEqual({ DisabledNotArchived: 1, Failed: 2 }));
 });

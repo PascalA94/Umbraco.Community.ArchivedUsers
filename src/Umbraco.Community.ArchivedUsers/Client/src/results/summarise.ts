@@ -1,7 +1,28 @@
-export type SkipReason = 'Self' | 'Invited' | 'AlreadyArchived' | 'NotArchived' | 'NotPermitted' | 'NotFound' | 'Cancelled' | 'CoreRefused';
+export type SkipReason =
+  | 'Self'
+  | 'Invited'
+  | 'AlreadyArchived'
+  | 'NotArchived'
+  | 'NotPermitted'
+  | 'NotFound'
+  | 'Cancelled'
+  | 'CoreRefused'
+  | 'DisabledNotArchived'
+  | 'Failed';
 
 /** The fixed order skip reasons are listed in (P12c). */
-export const SKIP_REASONS: readonly SkipReason[] = ['Self', 'Invited', 'AlreadyArchived', 'NotArchived', 'NotPermitted', 'NotFound', 'Cancelled', 'CoreRefused'];
+export const SKIP_REASONS: readonly SkipReason[] = [
+  'Self',
+  'Invited',
+  'AlreadyArchived',
+  'NotArchived',
+  'NotPermitted',
+  'NotFound',
+  'Cancelled',
+  'CoreRefused',
+  'DisabledNotArchived',
+  'Failed',
+];
 
 export interface ArchiveResult {
   id: string;

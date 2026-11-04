@@ -71,7 +71,8 @@ public class ReviewBFixTests
 
         IReadOnlyList<UserArchiveResult> results = await _f.Create().ArchiveAsync(admin.Key, new HashSet<Guid> { first.Key, brokenKey, last.Key }, null, ArchiveSource.Bulk);
 
-        Assert.Equal(new[] { ArchiveResultStatus.Archived, ArchiveResultStatus.CoreRefused, ArchiveResultStatus.Archived }, results.Select(r => r.Status));
+        // Review C-7: an already-disabled user is unchanged by the failure, so Failed (not CoreRefused).
+        Assert.Equal(new[] { ArchiveResultStatus.Archived, ArchiveResultStatus.Failed, ArchiveResultStatus.Archived }, results.Select(r => r.Status));
         Assert.Null(results[1].CoreStatus);
     }
 
