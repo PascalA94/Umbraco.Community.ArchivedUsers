@@ -1,0 +1,31 @@
+import { a as o } from "./archived-users.api-C7fXqz2n.js";
+import { A as r } from "./archive-status.context-token-DXqk9-Pa.js";
+import { s as n } from "./predicates-BAyNkNWg.js";
+import { A as c } from "./index-BzyUosXS.js";
+import { n as h, r as m } from "./refresh-user-CeSIfsvc.js";
+import { UmbEntityActionBase as u } from "@umbraco-cms/backoffice/entity-action";
+import { umbOpenModal as f } from "@umbraco-cms/backoffice/modal";
+import { UMB_USER_WORKSPACE_CONTEXT as A } from "@umbraco-cms/backoffice/user";
+class S extends u {
+  async execute() {
+    const t = this.args.unique;
+    if (!t) throw new Error("No user to archive.");
+    const i = await (await this.getContext(r))?.config(), a = (await this.getContext(A).catch(() => {
+    }))?.getData(), e = await f(this, c, {
+      data: {
+        mode: "archive",
+        count: 1,
+        requireReason: i?.requireReason ?? !1,
+        showNeverLoggedInHint: a ? n({ state: a.state, lastLoginDate: a.lastLoginDate }) : !1
+      }
+    }).catch(() => {
+    });
+    if (!e) return;
+    const { data: s } = await o.archive(this, [t], e.reason);
+    s && (await h(this, s, "archive"), await m(this, [t], s[0]?.status === "Archived"));
+  }
+}
+export {
+  S as ArchivedUsersArchiveEntityAction,
+  S as api
+};

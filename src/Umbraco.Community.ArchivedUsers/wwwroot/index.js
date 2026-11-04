@@ -1,4 +1,4 @@
-const s = [];
+import { m as a } from "./index-BzyUosXS.js";
 export {
-  s as manifests
+  a as manifests
 };
