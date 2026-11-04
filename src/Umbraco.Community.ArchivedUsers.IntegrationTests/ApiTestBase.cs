@@ -7,6 +7,12 @@ using System.Web;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using System.Text.Json;
+using Umbraco.Cms.Core.Migrations;
+using Umbraco.Cms.Core.Scoping;
+using Umbraco.Cms.Infrastructure.Migrations;
+using Umbraco.Cms.Infrastructure.Migrations.Upgrade;
+using Umbraco.Community.ArchivedUsers.Core.Migrations;
 using Umbraco.Cms.Core;
 using Umbraco.Cms.Core.Configuration.Models;
 using Umbraco.Cms.Core.Models;
@@ -34,7 +40,50 @@ public abstract class ApiTestBase : UmbracoTestServerTestBase
     public const string TokenEndpoint = "/umbraco/management/api/v1/security/back-office/token";
     private const string CodeVerifier = "archived-users-tests-code-verifier-0123456789";
 
+    public const string Root = ManagementApi + "archived-users";
+
     protected TestUsers Users => new(Services);
+
+    /// <summary>appsettings.Tests.json turns unattended package migrations off, so each test migrates first.</summary>
+    [SetUp]
+    public async Task MigratePackageTables()
+    {
+        ExecutedMigrationPlan result = await new Upgrader(new ArchivedUsersMigrationPlan()).ExecuteAsync(
+            Services.GetRequiredService<IMigrationPlanExecutor>(),
+            Services.GetRequiredService<ICoreScopeProvider>(),
+            Services.GetRequiredService<IKeyValueService>());
+        Assert.That(result.Successful, Is.True, result.Exception?.ToString());
+    }
+
+    /// <summary>Every package route, for the 401 / 403 tests (T14).</summary>
+    public static IEnumerable<(HttpMethod Method, string Path)> AllRoutes()
+    {
+        yield return (HttpMethod.Get, Root);
+        yield return (HttpMethod.Get, Root + "/" + Guid.NewGuid());
+        yield return (HttpMethod.Post, Root + "/archive");
+        yield return (HttpMethod.Post, Root + "/unarchive");
+        yield return (HttpMethod.Get, Root + "/clean-up/preview");
+        yield return (HttpMethod.Post, Root + "/clean-up");
+        yield return (HttpMethod.Get, Root + "/config");
+    }
+
+    protected static StringContent Json(object body)
+        => new(JsonSerializer.Serialize(body, new JsonSerializerOptions(JsonSerializerDefaults.Web)), Encoding.UTF8, "application/json");
+
+    protected static async Task<JsonElement> ReadJsonAsync(HttpResponseMessage response)
+    {
+        string text = await response.Content.ReadAsStringAsync();
+        Assert.That((int)response.StatusCode, Is.LessThan(300), text);
+        return JsonDocument.Parse(text).RootElement.Clone();
+    }
+
+    /// <summary>POSTs userIds to archive (or unarchive) and returns id → status.</summary>
+    protected static async Task<Dictionary<Guid, string>> PostStatusesAsync(HttpClient client, string action, object body)
+    {
+        HttpResponseMessage response = await client.PostAsync(Root + "/" + action, Json(body));
+        JsonElement json = await ReadJsonAsync(response);
+        return json.EnumerateArray().ToDictionary(e => e.GetProperty("id").GetGuid(), e => e.GetProperty("status").GetString()!);
+    }
 
     /// <summary>Do not install the framework's fake auth handler: the real policies are under test.</summary>
     protected override void CustomTestAuthSetup(IServiceCollection services)

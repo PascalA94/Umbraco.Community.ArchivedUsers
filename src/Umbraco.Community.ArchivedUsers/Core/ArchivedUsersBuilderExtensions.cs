@@ -17,6 +17,13 @@ public static class ArchivedUsersBuilderExtensions
     /// </summary>
     public static IUmbracoBuilder AddArchivedUsersCore(this IUmbracoBuilder builder)
     {
+        // Idempotent: a second call would register every notification handler twice.
+        if (builder.Services.Any(d => d.ServiceType == typeof(ArchivedUsersCoreMarker)))
+        {
+            return builder;
+        }
+
+        builder.Services.AddSingleton<ArchivedUsersCoreMarker>();
         builder.Services.AddOptions<ArchivedUsersSettings>()
             .Bind(builder.Config.GetSection(ArchivedUsersSettings.SectionName))
             .ValidateOnStart();
@@ -36,4 +43,9 @@ public static class ArchivedUsersBuilderExtensions
 
         return builder;
     }
+}
+
+/// <summary>Marks that the core services are registered.</summary>
+internal sealed class ArchivedUsersCoreMarker
+{
 }
