@@ -1,0 +1,5 @@
+# osv-scanner reads the csproj version range [18.3.0, 19.0.0) as a version and matches advisories fixed long before
+# the floor. The lock files pin the resolved versions and are scanned too, so real issues on 18.3.x are still reported.
+[[IgnoredVulns]]
+id = "GHSA-6ffg-mjg7-585x"
+reason = "Affects Umbraco.Cms.Api.Management < 14.3.3 and 15.0.0-rc1 to 15.2.3 only; the package floor is 18.3.0 (OSV query for 18.3.0 returns no vulnerabilities)."

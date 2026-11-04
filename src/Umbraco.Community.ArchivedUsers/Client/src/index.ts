@@ -1,1 +1,1 @@
-export const manifests: Array<UmbExtensionManifest> = [];
+export { manifests } from './manifests.js';

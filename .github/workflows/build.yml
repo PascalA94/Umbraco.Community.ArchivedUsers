@@ -21,7 +21,8 @@ jobs:
       fail-fast: false
       matrix:
         # floor: locked restore at the committed lock files (UmbracoTestVersion / UmbracoDemoVersion defaults).
-        leg: [floor]
+        # latest: newest 18.x, restored unlocked; the lock files it rewrites are never committed (P1).
+        leg: [floor, latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -29,6 +30,9 @@ jobs:
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           dotnet-version: '10.x'
+          # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -46,17 +50,28 @@ jobs:
         working-directory: ${{ env.CLIENT_DIR }}
         run: npm run build
 
+      # AU-04, T7: no HTML sinks, no generic confirm modal, literal localisation keys only.
+      - name: XSS guard
+        run: bash build/check-xss.sh
+
       - name: Client tests
         working-directory: ${{ env.CLIENT_DIR }}
         run: npm test
 
       # The built client in wwwroot is committed; fail if it differs from a fresh build (P13c).
       - name: Check committed wwwroot matches the build
-        run: git diff --exit-code -- src/Umbraco.Community.ArchivedUsers/wwwroot
+        run: |
+          git diff --exit-code -- src/Umbraco.Community.ArchivedUsers/wwwroot
+          # git diff ignores untracked files, so a new hashed chunk from a drifted build needs its own check.
+          test -z "$(git status --porcelain -- src/Umbraco.Community.ArchivedUsers/wwwroot)"
 
       # Proves the Vite external held: core client code is imported at runtime, never bundled (AU-15).
+      # Only meaningful once the client source imports core; an empty-manifest bundle has nothing to externalise.
       - name: Check @umbraco-cms/backoffice stayed external
-        run: grep -rqE --include='*.js' "[\"']@umbraco-cms/backoffice/" src/Umbraco.Community.ArchivedUsers/wwwroot/
+        run: |
+          if grep -rqE "from [\"']@umbraco-cms/backoffice/" src/Umbraco.Community.ArchivedUsers/Client/src; then
+            grep -rqE --include='*.js' "[\"']@umbraco-cms/backoffice/" src/Umbraco.Community.ArchivedUsers/wwwroot/
+          fi
 
       - name: Restore (locked)
         if: matrix.leg == 'floor'
@@ -66,11 +81,16 @@ jobs:
         if: matrix.leg == 'floor'
         run: git diff --exit-code -- '**/packages.lock.json'
 
-      - name: Build
-        run: dotnet build src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-restore
+      - name: Restore (latest minor, unlocked)
+        if: matrix.leg == 'latest'
+        run: dotnet restore src/Umbraco.Community.ArchivedUsers.slnx "-p:UmbracoTestVersion=18.*" "-p:UmbracoDemoVersion=18.*" --force-evaluate -p:RestoreLockedMode=false
 
+      - name: Build
+        run: dotnet build src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-restore ${{ matrix.leg == 'latest' && '"-p:UmbracoTestVersion=18.*" "-p:UmbracoDemoVersion=18.*"' || '' }}
+
+      # Unit and integration tests (SQLite). SQL Server and e2e run in release-checks.yml.
       - name: Test
-        run: dotnet test src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-build --logger "trx;LogFileName=results.trx"
+        run: dotnet test src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-build --logger "trx;LogFileName=results.trx" ${{ matrix.leg == 'latest' && '"-p:UmbracoTestVersion=18.*" "-p:UmbracoDemoVersion=18.*"' || '' }}
 
       - name: Upload test results
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -98,6 +118,7 @@ jobs:
       fail-on-vuln: true
       upload-sarif: false
       scan-args: |-
+        --config=./osv-scanner.toml
         --recursive
         ./
 
@@ -110,6 +131,9 @@ jobs:
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
           dotnet-version: '10.x'
+          # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
       - name: Restore (locked)
         run: dotnet restore src/Umbraco.Community.ArchivedUsers.slnx --locked-mode
       - name: Vulnerable packages (direct and transitive)

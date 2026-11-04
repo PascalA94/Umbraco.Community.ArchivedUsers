@@ -1,0 +1,90 @@
+name: Publish to NuGet
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write # NuGet Trusted Publishing (OIDC): no long-lived API key (AU-15)
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # A tag publishes only from its line's release branch: v18.* from main, v17.* from v17 (review C-13).
+      - name: Tag is on its release branch
+        run: |
+          case "$GITHUB_REF_NAME" in
+            v18.*) branch=main ;;
+            v17.*) branch=v17 ;;
+            *) echo "Unexpected tag $GITHUB_REF_NAME" >&2; exit 1 ;;
+          esac
+          git merge-base --is-ancestor "$GITHUB_SHA" "origin/$branch"
+
+      - name: Version files match the tag
+        run: bash build/check-release-version.sh "$GITHUB_REF_NAME"
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: src/Umbraco.Community.ArchivedUsers/Client/.nvmrc
+          cache: npm
+          cache-dependency-path: src/Umbraco.Community.ArchivedUsers/Client/package-lock.json
+
+      # The same client gates as build.yml, so a tag never publishes a client that CI did not check.
+      - name: Client build, XSS guard, tests and wwwroot drift
+        run: |
+          cd src/Umbraco.Community.ArchivedUsers/Client
+          npm ci --ignore-scripts
+          npm run build
+          npm test
+          cd ../../..
+          bash build/check-xss.sh
+          git diff --exit-code -- src/Umbraco.Community.ArchivedUsers/wwwroot
+          test -z "$(git status --porcelain -- src/Umbraco.Community.ArchivedUsers/wwwroot)"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.x'
+
+      - name: Restore (locked)
+        run: dotnet restore src/Umbraco.Community.ArchivedUsers.slnx --locked-mode
+
+      - name: Build
+        run: dotnet build src/Umbraco.Community.ArchivedUsers.slnx --no-restore -c Release
+
+      - name: Test
+        run: dotnet test src/Umbraco.Community.ArchivedUsers.slnx --no-build -c Release
+
+      # Release gate (T21): parsed output, never the exit code.
+      - name: Vulnerable packages
+        run: bash build/check-vulnerable.sh
+
+      # Only the package is packed: tests and the demo site are IsPackable=false.
+      - name: Pack
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          dotnet pack src/Umbraco.Community.ArchivedUsers/Umbraco.Community.ArchivedUsers.csproj \
+            --no-build -c Release -p:Version=$VERSION -o ./artifacts
+
+      - name: NuGet login (Trusted Publishing)
+        uses: NuGet/login@8d196754b4036150537f80ac539e15c2f1028841 # v1.2.0
+        id: nuget-login
+        with:
+          user: ${{ secrets.NUGET_USER }}
+
+      - name: Push to NuGet
+        run: |
+          dotnet nuget push ./artifacts/*.nupkg \
+            --source https://api.nuget.org/v3/index.json \
+            --api-key ${{ steps.nuget-login.outputs.NUGET_API_KEY }}

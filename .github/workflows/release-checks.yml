@@ -1,0 +1,152 @@
+name: Release checks
+
+on:
+  # Run by hand before every release (Actions -> Release checks -> Run workflow), and after a new Umbraco minor.
+  # Not on PRs or a schedule: e2e and SQL Server take 10-25 minutes and catch Umbraco or database regressions.
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+env:
+  DOTNET_NOLOGO: true
+  DOTNET_CLI_TELEMETRY_OPTOUT: true
+
+jobs:
+  integration-sqlserver:
+    runs-on: ubuntu-latest
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          ACCEPT_EULA: 'Y'
+          # Throwaway container password for CI only; not a secret.
+          MSSQL_SA_PASSWORD: 'Nightly-Ci-Only-Pw-1!'
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Nightly-Ci-Only-Pw-1!' -C -Q 'SELECT 1'"
+          --health-interval 10s --health-timeout 5s --health-retries 20
+    env:
+      Tests__Database__DatabaseType: SqlServer
+      Tests__Database__SQLServerMasterConnectionString: 'Server=localhost,1433;User Id=sa;Password=Nightly-Ci-Only-Pw-1!;TrustServerCertificate=true;Encrypt=false'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.x'
+          # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Restore (locked, floor)
+        run: dotnet restore src/Umbraco.Community.ArchivedUsers.slnx --locked-mode
+
+      - name: Build
+        run: dotnet build src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-restore
+
+      - name: Integration tests on SQL Server
+        run: dotnet test src/Umbraco.Community.ArchivedUsers.IntegrationTests -c Release --no-build --logger "trx;LogFileName=sqlserver.trx"
+
+      # The concurrency test must really run on SQL Server; a silent skip fails the job (P6, T16).
+      - name: Concurrency tests on SQL Server
+        run: |
+          dotnet test src/Umbraco.Community.ArchivedUsers.IntegrationTests -c Release --no-build \
+            --filter TestCategory=Concurrency --logger "trx;LogFileName=concurrency.trx" --results-directory ./concurrency
+          trx=$(find ./concurrency -name concurrency.trx | head -1)
+          executed=$(grep -o 'executed="[0-9]*"' "$trx" | head -1 | grep -o '[0-9]*')
+          not_executed=$(grep -o 'notExecuted="[0-9]*"' "$trx" | head -1 | grep -o '[0-9]*')
+          echo "executed=$executed notExecuted=$not_executed"
+          test "$executed" -ge 1 && test "$not_executed" -eq 0
+
+      - name: Upload test results
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: release-checks-sqlserver
+          path: '**/*.trx'
+
+  # Playwright against the demo site, at the floor and at the newest 18.x (T4 at both, P1).
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        leg: [floor, latest]
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Throwaway CI-only credentials for a disposable demo database; not secrets.
+      Umbraco__CMS__Unattended__UnattendedUserPassword: 'Ci-Admin-Only-Pw-1!'
+      ArchivedUsersDemo__UserPassword: 'Ci-Demo-Only-Pw-1!'
+      # Umbraco's OpenIddict server refuses plain HTTP (ID2083), so the demo runs on HTTPS with the .NET dev certificate.
+      URL: https://localhost:44331
+      # Invitation links need a fixed application URL on Umbraco 18.3+.
+      Umbraco__CMS__WebRouting__UmbracoApplicationUrl: https://localhost:44331
+      ADMIN_EMAIL: admin@example.test
+      ADMIN_PASSWORD: 'Ci-Admin-Only-Pw-1!'
+      MANAGER_EMAIL: morgan@example.test
+      MANAGER_PASSWORD: 'Ci-Demo-Only-Pw-1!'
+      TEST_USER_PASSWORD: 'Ci-E2e-Only-Pw-1!'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.x'
+          # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: src/Umbraco.Community.ArchivedUsers/Client/.nvmrc
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Restore demo (floor, locked)
+        if: matrix.leg == 'floor'
+        run: dotnet restore demo/Umbraco.Community.ArchivedUsers.DemoSite --locked-mode
+
+      - name: Restore demo (latest 18.x, unlocked)
+        if: matrix.leg == 'latest'
+        run: dotnet restore demo/Umbraco.Community.ArchivedUsers.DemoSite "-p:UmbracoDemoVersion=18.*" --force-evaluate -p:RestoreLockedMode=false
+
+      # Kestrel needs a certificate for HTTPS; the dev certificate is enough (Playwright ignores HTTPS errors).
+      - name: Create the HTTPS dev certificate
+        run: dotnet dev-certs https
+
+      - name: Start the demo site
+        run: |
+          start() {
+            dotnet run --project demo/Umbraco.Community.ArchivedUsers.DemoSite --no-restore --no-launch-profile --urls https://localhost:44331 \
+              ${{ matrix.leg == 'latest' && '"-p:UmbracoDemoVersion=18.*"' || '' }} >> demo.log 2>&1 &
+            for i in $(seq 1 120); do curl -skf -o /dev/null https://localhost:44331/umbraco && return 0; sleep 2; done
+            return 1
+          }
+          # First boot installs Umbraco unattended; the restart runs the demo seeder against the installed site.
+          start
+          pkill -f Umbraco.Community.ArchivedUsers.DemoSite; sleep 5
+          start
+          for i in $(seq 1 60); do grep -q "Demo users seeded\|Demo seed skipped: demo users already exist" demo.log && break; sleep 2; done
+          grep -E "Demo users seeded|Demo seed skipped" demo.log
+
+      - name: Playwright
+        working-directory: tests/e2e
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+          CI=1 npx playwright test
+
+      - name: Upload Playwright report and demo log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-${{ matrix.leg }}
+          path: |
+            tests/e2e/playwright-report
+            tests/e2e/test-results
+            demo.log
