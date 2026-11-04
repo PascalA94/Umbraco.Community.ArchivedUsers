@@ -4,6 +4,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.Extensions.Time.Testing;
 using NSubstitute;
 using Umbraco.Cms.Core;
+using Umbraco.Cms.Core.Models;
 using Umbraco.Cms.Core.Events;
 using Umbraco.Cms.Core.Models.Membership;
 using Umbraco.Cms.Core.Scoping;
@@ -82,6 +83,21 @@ internal sealed class ServiceFixture
             return UserVisibility.IsAdmin(performer) || !anyAdmin ? UserAuthorizationStatus.Success : UserAuthorizationStatus.UnauthorizedMissingAdminAccess;
         });
         Audit.AddAsync(default, default, default, default, default, default).ReturnsForAnyArgs(Attempt.Succeed(AuditLogOperationStatus.Success));
+
+        // Legacy paged read used by clean-up (docs/spikes.md S3): filters by state like the database query does.
+        UserService.GetAll(Arg.Any<long>(), Arg.Any<int>(), out Arg.Any<long>(), Arg.Any<string>(), Arg.Any<Direction>(), Arg.Any<UserState[]?>(), Arg.Any<string[]?>(), Arg.Any<string?>())
+            .Returns(ci =>
+            {
+                long page = ci.ArgAt<long>(0);
+                int size = ci.ArgAt<int>(1);
+                UserState[]? states = ci.ArgAt<UserState[]?>(5);
+                var matching = _users.Values
+                    .Where(u => states is null || states.Contains(u.UserState) || (states.Contains(UserState.Disabled) && u.UserState == UserState.Invited))
+                    .OrderBy(u => u.Name, StringComparer.Ordinal)
+                    .ToList();
+                ci[2] = (long)matching.Count;
+                return matching.Skip((int)(page * size)).Take(size).ToList();
+            });
 
         Repository.GetAsync(Arg.Any<Guid>()).Returns(ci => Records.GetValueOrDefault(ci.Arg<Guid>()));
         Repository.GetAllAsync().Returns(_ => Records.Values.ToList());
