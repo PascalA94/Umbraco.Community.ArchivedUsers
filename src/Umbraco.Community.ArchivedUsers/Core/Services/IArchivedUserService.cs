@@ -36,4 +36,10 @@ public interface IArchivedUserService
     Task<HashSet<Guid>> GetArchivedKeysAsync();
 
     Task<bool> IsArchivedAsync(Guid userKey);
+
+    /// <summary>
+    /// Removes records whose user is enabled or no longer exists, with an Unarchived / Reconcile audit row each
+    /// (F7a, AU-03). Returns the number removed. Reused by the v0.2 scheduled job (F12).
+    /// </summary>
+    Task<int> ReconcileAsync(CancellationToken cancellationToken);
 }
