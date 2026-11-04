@@ -71,3 +71,76 @@ jobs:
         with:
           name: nightly-sqlserver
           path: '**/*.trx'
+
+  # Playwright against the demo site, at the floor and at the newest 18.x (T4 at both, P1).
+  e2e:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        leg: [floor, latest]
+    env:
+      ASPNETCORE_ENVIRONMENT: Development
+      # Throwaway CI-only credentials for a disposable demo database; not secrets.
+      Umbraco__CMS__Unattended__UnattendedUserPassword: 'Ci-Admin-Only-Pw-1!'
+      ArchivedUsersDemo__UserPassword: 'Ci-Demo-Only-Pw-1!'
+      URL: http://localhost:28331
+      ADMIN_EMAIL: admin@example.test
+      ADMIN_PASSWORD: 'Ci-Admin-Only-Pw-1!'
+      MANAGER_EMAIL: morgan@example.test
+      MANAGER_PASSWORD: 'Ci-Demo-Only-Pw-1!'
+      TEST_USER_PASSWORD: 'Ci-E2e-Only-Pw-1!'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
+        with:
+          dotnet-version: '10.x'
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: src/Umbraco.Community.ArchivedUsers/Client/.nvmrc
+          cache: npm
+          cache-dependency-path: tests/e2e/package-lock.json
+
+      - name: Restore demo (floor, locked)
+        if: matrix.leg == 'floor'
+        run: dotnet restore demo/Umbraco.Community.ArchivedUsers.DemoSite --locked-mode
+
+      - name: Restore demo (latest 18.x, unlocked)
+        if: matrix.leg == 'latest'
+        run: dotnet restore demo/Umbraco.Community.ArchivedUsers.DemoSite "-p:UmbracoDemoVersion=18.*" --force-evaluate -p:RestoreLockedMode=false
+
+      - name: Start the demo site
+        run: |
+          start() {
+            dotnet run --project demo/Umbraco.Community.ArchivedUsers.DemoSite --no-restore --no-launch-profile --urls http://localhost:28331 \
+              ${{ matrix.leg == 'latest' && '"-p:UmbracoDemoVersion=18.*"' || '' }} >> demo.log 2>&1 &
+            for i in $(seq 1 120); do curl -sf -o /dev/null http://localhost:28331/umbraco && return 0; sleep 2; done
+            return 1
+          }
+          # First boot installs Umbraco unattended; the restart runs the demo seeder against the installed site.
+          start
+          pkill -f Umbraco.Community.ArchivedUsers.DemoSite; sleep 5
+          start
+          for i in $(seq 1 60); do grep -q "Demo users seeded\|Demo seed skipped: demo users already exist" demo.log && break; sleep 2; done
+          grep -E "Demo users seeded|Demo seed skipped" demo.log
+
+      - name: Playwright
+        working-directory: tests/e2e
+        run: |
+          npm ci --ignore-scripts
+          npx playwright install --with-deps chromium
+          CI=1 npx playwright test
+
+      - name: Upload Playwright report and demo log
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-${{ matrix.leg }}
+          path: |
+            tests/e2e/playwright-report
+            tests/e2e/test-results
+            demo.log

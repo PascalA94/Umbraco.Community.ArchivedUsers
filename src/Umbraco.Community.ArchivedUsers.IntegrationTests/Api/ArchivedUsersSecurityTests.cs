@@ -241,7 +241,7 @@ public class ArchivedUsersSecurityTests : ArchivedUsersApiTestBase
     public async Task Archived_api_user_cannot_get_client_credentials_token()
     {
         const string clientId = "umbraco-back-office-archived-users-t5";
-        const string secret = "t5-secret-0123456789-abcdefghij";
+        const string secret = "t5-secret-0123456789-abcdefghij"; // gitleaks:allow (test-only client secret for a throwaway test database)
         IUser apiUser = await Users.CreateApiUserAsync("T5 API user", clientId, secret);
         var tokenRequest = () => CreateAnonymousClient().PostAsync(TokenEndpoint, new FormUrlEncodedContent(new Dictionary<string, string>
         {
