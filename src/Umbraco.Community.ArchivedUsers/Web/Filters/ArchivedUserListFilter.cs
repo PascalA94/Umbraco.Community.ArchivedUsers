@@ -100,7 +100,7 @@ public sealed class ArchivedUserListFilter : IAsyncActionFilter
     }
 
     /// <summary>AU-10: only core's filter controller, only the line's bound action, only its route, only GET.</summary>
-    private static bool IsCoreUserFilter(ActionExecutingContext context)
+    internal static bool IsCoreUserFilter(ActionExecutingContext context)
         => context.ActionDescriptor is ControllerActionDescriptor action
            && action.ControllerTypeInfo.AsType() == typeof(FilterUserFilterController)
            && action.ActionName == BoundActionName

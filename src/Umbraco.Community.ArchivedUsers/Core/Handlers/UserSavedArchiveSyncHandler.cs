@@ -7,6 +7,7 @@ using Umbraco.Cms.Core.Security;
 using Umbraco.Community.ArchivedUsers.Core.Models;
 using Umbraco.Community.ArchivedUsers.Core.Notifications;
 using Umbraco.Community.ArchivedUsers.Core.Persistence;
+using Umbraco.Community.ArchivedUsers.Core.Security;
 
 namespace Umbraco.Community.ArchivedUsers.Core.Handlers;
 
@@ -46,7 +47,7 @@ internal sealed class UserSavedArchiveSyncHandler : INotificationAsyncHandler<Us
 
     public async Task HandleAsync(UserSavedNotification notification, CancellationToken cancellationToken)
     {
-        foreach (IUser user in notification.SavedEntities.Where(u => u.UserState != UserState.Disabled))
+        foreach (IUser user in notification.SavedEntities.Where(u => !UserStateRules.IsDisabled(u)))
         {
             try
             {

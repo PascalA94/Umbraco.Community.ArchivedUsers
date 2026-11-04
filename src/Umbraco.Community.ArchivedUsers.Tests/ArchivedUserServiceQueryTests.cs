@@ -15,6 +15,7 @@ public class ArchivedUserServiceQueryTests
     {
         IUser user = admin ? _f.AddAdmin(name) : _f.AddUser(name);
         user.UserState.Returns(state);
+        user.IsApproved.Returns(state != UserState.Disabled);
         _f.Records[user.Key] = new ArchivedUserRecord(user.Key, archivedUtc, archivedBy, ArchiveSource.Manual, null, false);
         return user;
     }

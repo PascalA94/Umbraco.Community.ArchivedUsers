@@ -156,11 +156,13 @@ public class ArchivedUsersSecurityTests : ArchivedUsersApiTestBase
     public async Task Non_admin_clean_up_does_not_archive_disabled_admin()
     {
         IUser disabledAdmin = await Users.CreateAsync("Former admin", [Constants.Security.AdminGroupAlias], UserState.Disabled);
+        IUser disabledEditor = await Users.CreateEditorAsync("Former editor", UserState.Disabled);
         HttpClient manager = await CreateAuthenticatedClientAsync(await Users.CreateUserManagerAsync());
 
         await ReadJsonAsync(await manager.PostAsync(Root + "/clean-up", Json(new { })));
 
         Assert.That(await RecordAsync(disabledAdmin.Key), Is.Null);
+        Assert.That(await RecordAsync(disabledEditor.Key), Is.Not.Null, "clean-up did run (review BS-6)");
     }
 
     [Test]

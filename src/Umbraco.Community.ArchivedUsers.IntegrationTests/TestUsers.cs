@@ -69,6 +69,17 @@ public sealed class TestUsers
         return (await UserService.GetAsync(user.Key))!;
     }
 
+    /// <summary>Disables and locks out a user; core then reports UserState.LockedOut, not Disabled (review BS-1).</summary>
+    public async Task<IUser> DisableAndLockOutAsync(IUser user)
+    {
+        IUser reloaded = (await UserService.GetAsync(user.Key))!;
+        reloaded.IsApproved = false;
+        reloaded.IsLockedOut = true;
+        reloaded.LastLockoutDate = DateTime.UtcNow;
+        UserService.Save(reloaded);
+        return (await UserService.GetAsync(user.Key))!;
+    }
+
     public async Task<IUserGroup> EnsureUserManagersGroupAsync()
     {
         IUserGroup? existing = await UserGroupService.GetAsync(UserManagersAlias);

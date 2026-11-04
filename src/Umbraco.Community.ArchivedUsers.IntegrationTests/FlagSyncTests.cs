@@ -68,9 +68,11 @@ public class FlagSyncTests : ArchiveTableTestBase
         IUser editor = await ArchivedEditorAsync(admin);
         var security = Mock.Of<IBackOfficeSecurity>(s => s.CurrentUser == other);
 
+        // The performer argument differs from the ambient user, so the test proves the handler reads the
+        // signed-in backoffice user rather than anything core passed (review BS-6).
         using (GetRequiredService<IBackOfficeSecurityAccessor>().Override(security))
         {
-            await UserService.EnableAsync(other.Key, new HashSet<Guid> { editor.Key });
+            await UserService.EnableAsync(Constants.Security.SuperUserKey, new HashSet<Guid> { editor.Key });
         }
 
         Assert.That(await RecordAsync(editor.Key), Is.Null);
@@ -92,6 +94,22 @@ public class FlagSyncTests : ArchiveTableTestBase
         ArchiveAuditEntry row = (await AuditAsync(editor.Key)).First();
         Assert.That(row.Source, Is.EqualTo(ArchiveSource.CoreEnable));
         Assert.That(row.PerformedByUserKey, Is.Null);
+    }
+
+    /// <summary>Review BS-1: a disabled user who is also locked out is still disabled; a save keeps the flag.</summary>
+    [Test]
+    public async Task Saving_an_archived_disabled_locked_out_user_keeps_the_flag()
+    {
+        IUser admin = await Users.CreateAdminAsync();
+        IUser editor = await ArchivedEditorAsync(admin);
+
+        IUser locked = await Users.DisableAndLockOutAsync(editor);
+
+        Assert.That(locked.UserState, Is.EqualTo(UserState.LockedOut), "core reports LockedOut before Disabled");
+        Assert.That(await RecordAsync(editor.Key), Is.Not.Null);
+        Assert.That(await AuditAsync(editor.Key), Has.Count.EqualTo(1));
+        Assert.That(await Service.ReconcileAsync(CancellationToken.None), Is.EqualTo(0));
+        Assert.That(await RecordAsync(editor.Key), Is.Not.Null);
     }
 
     [Test]

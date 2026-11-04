@@ -1,4 +1,5 @@
 using Umbraco.Cms.Core.Models.Membership;
+using Umbraco.Community.ArchivedUsers.Core.Security;
 
 namespace Umbraco.Community.ArchivedUsers.Web.Filters;
 
@@ -17,5 +18,5 @@ public static class UserListPaging
     /// so an enabled account is never hidden (AU-03).
     /// </summary>
     public static HashSet<Guid> DropSet(IEnumerable<IUser> users, ISet<Guid> archivedKeys)
-        => users.Where(u => archivedKeys.Contains(u.Key) && u.UserState == UserState.Disabled).Select(u => u.Key).ToHashSet();
+        => users.Where(u => archivedKeys.Contains(u.Key) && UserStateRules.IsDisabled(u)).Select(u => u.Key).ToHashSet();
 }

@@ -16,9 +16,10 @@ public sealed class ArchivedUsersComposer : IComposer
         builder.AddArchivedUsersCore();
         builder.AddArchivedUsersOpenApi();
 
-        // The filter is scoped and resolved per request through AddService, so it never captures scoped state (P2).
+        // The global gate has no dependencies; it resolves the scoped filter per request, and only for core's
+        // GET filter/user, so no scoped state is captured (P2) and other actions pay nothing (review BS-5).
         builder.Services.AddScoped<ArchivedUserListFilter>();
         builder.Services.AddSingleton<ArchivedUserListWarningClock>();
-        builder.Services.Configure<MvcOptions>(options => options.Filters.AddService<ArchivedUserListFilter>());
+        builder.Services.Configure<MvcOptions>(options => options.Filters.Add(new ArchivedUserListFilterGate()));
     }
 }

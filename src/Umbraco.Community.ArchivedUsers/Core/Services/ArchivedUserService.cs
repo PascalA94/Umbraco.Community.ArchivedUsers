@@ -66,10 +66,10 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
 
     public async Task<IReadOnlyList<UserArchiveResult>> ArchiveAsync(Guid performerKey, ISet<Guid> userKeys, string? reason, ArchiveSource source)
     {
-        // Step 0 (P9): a missing or disabled performer, for example an admin archived while their access token
+        // Step 0 (P9): a missing, disabled or locked-out performer, for example an admin archived while their access token
         // is still live, may change nobody. Core is never called.
         IUser? performer = await _userService.GetAsync(performerKey);
-        if (performer is null || performer.UserState == UserState.Disabled)
+        if (!UserStateRules.CanPerform(performer))
         {
             return userKeys.Select(k => new UserArchiveResult(k, ArchiveResultStatus.NotPermitted)).ToList();
         }
@@ -78,54 +78,66 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
         foreach (Guid key in userKeys)
         {
             // One lock per user, held from the state read to the record write (P6). Never two at once.
-            using IDisposable userLock = await _locks.AcquireAsync(key);
-            results.Add(await ArchiveOneAsync(performer, key, reason, source));
+            // The Archived notification is published after the lock is released: the stripes are not re-entrant,
+            // so a subscriber that archives any user on the same stripe would otherwise deadlock (review BS-3).
+            UserArchivedNotification? archived;
+            using (await _locks.AcquireAsync(key))
+            {
+                (UserArchiveResult result, archived) = await ArchiveOneAsync(performer!, key, reason, source);
+                results.Add(result);
+            }
+
+            if (archived is not null)
+            {
+                await _events.PublishAsync(archived);
+            }
         }
 
         return results;
     }
 
-    private async Task<UserArchiveResult> ArchiveOneAsync(IUser performer, Guid key, string? reason, ArchiveSource source)
+    private async Task<(UserArchiveResult Result, UserArchivedNotification? Notification)> ArchiveOneAsync(IUser performer, Guid key, string? reason, ArchiveSource source)
     {
         IUser? target = await _userService.GetAsync(key);
         UserArchiveResult? refused = await AuthoriseAsync(performer, key, target);
         if (refused is not null)
         {
-            return refused;
+            return (refused, null);
         }
 
         ArchivedUserRecord? record = await ReadRecordAsync(key);
         if (record is not null)
         {
-            if (target!.UserState == UserState.Disabled)
+            if (UserStateRules.IsDisabled(target!))
             {
-                return new UserArchiveResult(key, ArchiveResultStatus.AlreadyArchived);
+                return (new UserArchiveResult(key, ArchiveResultStatus.AlreadyArchived), null);
             }
 
-            // AU-03: a record for an enabled user is stale. Reconcile it first, then archive as new.
-            await ReconcileStaleRecordAsync(target);
+            // AU-03: a record for an enabled user is stale. Reconcile it first, then archive as new. The person
+            // archiving triggered it, so they are the audit row's performer (AU-07, review BS-4).
+            await ReconcileStaleRecordAsync(target, performerKey: performer.Key);
         }
 
         if (target!.UserState == UserState.Invited)
         {
-            return new UserArchiveResult(key, ArchiveResultStatus.Invited);
+            return (new UserArchiveResult(key, ArchiveResultStatus.Invited), null);
         }
 
         var archiveEvent = new UserArchiveEvent(key, performer.Key, source, reason);
         var archiving = new UserArchivingNotification(archiveEvent, _messagesFactory.Get());
         if (await _events.PublishCancelableAsync(archiving))
         {
-            return new UserArchiveResult(key, ArchiveResultStatus.Cancelled, Message: archiving.Messages.GetAll().FirstOrDefault()?.Message);
+            return (new UserArchiveResult(key, ArchiveResultStatus.Cancelled, Message: archiving.Messages.GetAll().FirstOrDefault()?.Message), null);
         }
 
-        bool wasDisabledBefore = target.UserState == UserState.Disabled;
+        bool wasDisabledBefore = UserStateRules.IsDisabled(target);
         if (!wasDisabledBefore)
         {
             // One user per call: core returns a single status per call, so this is how bulk gets per-user results.
             UserOperationStatus status = await _userService.DisableAsync(performer.Key, new HashSet<Guid> { key });
             if (status != UserOperationStatus.Success)
             {
-                return new UserArchiveResult(key, ArchiveResultStatus.CoreRefused, status);
+                return (new UserArchiveResult(key, ArchiveResultStatus.CoreRefused, status), null);
             }
 
             await RotateStampAsync(key);
@@ -139,24 +151,32 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
             {
                 scope.Complete();
                 _logger.LogWarning("Archive record for {UserKey} already existed when inserting; another request won", key);
-                return new UserArchiveResult(key, ArchiveResultStatus.AlreadyArchived);
+                return (new UserArchiveResult(key, ArchiveResultStatus.AlreadyArchived), null);
             }
 
             await _repository.InsertAuditAsync(new ArchiveAuditEntry(
                 key, ArchiveAuditAction.Archived, performer.Key, newRecord.ArchivedUtc, source, reason, target.Name));
             scope.Complete();
         }
-        catch (Exception ex) when (!wasDisabledBefore)
+        catch (Exception ex)
         {
-            // Accepted gap (docs/design.md 7.2): disabled but not archived. Safe, because the user is disabled
-            // and still visible; a retry archives them with wasDisabledBefore = true.
-            _logger.LogError(ex, "User {UserKey} was disabled but not archived", key);
-            return new UserArchiveResult(key, ArchiveResultStatus.CoreRefused);
+            // Per user, never for the whole call: the other users keep their results (review BQ-5).
+            if (!wasDisabledBefore)
+            {
+                // Accepted gap (docs/design.md 7.2): disabled but not archived. Safe, because the user is disabled
+                // and still visible; a retry archives them with wasDisabledBefore = true.
+                _logger.LogError(ex, "User {UserKey} was disabled but not archived", key);
+            }
+            else
+            {
+                _logger.LogError(ex, "User {UserKey} could not be archived", key);
+            }
+
+            return (new UserArchiveResult(key, ArchiveResultStatus.CoreRefused), null);
         }
 
         await WriteCoreAuditAsync(performer.Key, target, ArchiveAuditAction.Archived, source);
-        await _events.PublishAsync(new UserArchivedNotification(archiveEvent, _messagesFactory.Get()));
-        return new UserArchiveResult(key, ArchiveResultStatus.Archived);
+        return (new UserArchiveResult(key, ArchiveResultStatus.Archived), new UserArchivedNotification(archiveEvent, _messagesFactory.Get()));
     }
 
     /// <summary>
@@ -196,7 +216,7 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
     /// written only when this call's delete removed the row, so concurrent nodes write one row between them (AU-14b).
     /// Shared with <c>ReconcileAsync</c>.
     /// </summary>
-    private async Task<bool> ReconcileStaleRecordAsync(IUser? user, Guid? missingUserKey = null)
+    private async Task<bool> ReconcileStaleRecordAsync(IUser? user, Guid? missingUserKey = null, Guid? performerKey = null)
     {
         Guid key = user?.Key ?? missingUserKey!.Value;
         using ICoreScope scope = _scopeProvider.CreateCoreScope();
@@ -204,7 +224,7 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
         if (removed)
         {
             await _repository.InsertAuditAsync(new ArchiveAuditEntry(
-                key, ArchiveAuditAction.Unarchived, null, _time.GetUtcNow().UtcDateTime, ArchiveSource.Reconcile, null, user?.Name));
+                key, ArchiveAuditAction.Unarchived, performerKey, _time.GetUtcNow().UtcDateTime, ArchiveSource.Reconcile, null, user?.Name));
         }
 
         scope.Complete();

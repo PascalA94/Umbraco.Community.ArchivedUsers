@@ -138,6 +138,19 @@ internal sealed class ServiceFixture
 
     public IUser AddAdmin(string name = "Admin") => AddUser(name, admin: true);
 
+    /// <summary>
+    /// A disabled user who is also locked out. Core's UserState reports LockedOut before Disabled
+    /// (User.UserState at release-18.3.0), so state alone hides that the account is disabled (review BS-1).
+    /// </summary>
+    public IUser AddDisabledLockedOutUser(string name = "Locked", bool admin = false)
+    {
+        IUser user = AddUser(name, admin: admin);
+        user.UserState.Returns(UserState.LockedOut);
+        user.IsLockedOut.Returns(true);
+        user.IsApproved.Returns(false);
+        return user;
+    }
+
     public IUser AddSuperUser() => AddUser("Super", admin: true, key: Constants.Security.SuperUserKey);
 
     public void RemoveUser(Guid key) => _users.Remove(key);
@@ -171,9 +184,13 @@ internal sealed class RecordingLocks : IArchiveUserLocks
 
     public int MaxHeldAtOnce { get; private set; }
 
+    /// <summary>Runs after a lock is acquired, to simulate another request changing state just before it.</summary>
+    public Action<Guid>? OnAcquire { get; set; }
+
     public Task<IDisposable> AcquireAsync(Guid userKey, CancellationToken cancellationToken = default)
     {
         Events.Add($"acquire:{userKey}");
+        OnAcquire?.Invoke(userKey);
         _held++;
         MaxHeldAtOnce = Math.Max(MaxHeldAtOnce, _held);
         return Task.FromResult<IDisposable>(new Handle(this, userKey));

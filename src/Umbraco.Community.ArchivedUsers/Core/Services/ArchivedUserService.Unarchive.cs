@@ -17,7 +17,7 @@ internal sealed partial class ArchivedUserService
     public async Task<IReadOnlyList<UserArchiveResult>> UnarchiveAsync(Guid performerKey, ISet<Guid> userKeys, bool? enable, ArchiveSource source)
     {
         IUser? performer = await _userService.GetAsync(performerKey);
-        if (performer is null || performer.UserState == UserState.Disabled)
+        if (!UserStateRules.CanPerform(performer))
         {
             return userKeys.Select(k => new UserArchiveResult(k, ArchiveResultStatus.NotPermitted)).ToList();
         }
@@ -25,20 +25,30 @@ internal sealed partial class ArchivedUserService
         var results = new List<UserArchiveResult>(userKeys.Count);
         foreach (Guid key in userKeys)
         {
-            using IDisposable userLock = await _locks.AcquireAsync(key);
-            results.Add(await UnarchiveOneAsync(performer, key, enable, source));
+            // Published after the lock is released (review BS-3, see ArchiveAsync).
+            UserUnarchivedNotification? unarchived;
+            using (await _locks.AcquireAsync(key))
+            {
+                (UserArchiveResult result, unarchived) = await UnarchiveOneAsync(performer!, key, enable, source);
+                results.Add(result);
+            }
+
+            if (unarchived is not null)
+            {
+                await _events.PublishAsync(unarchived);
+            }
         }
 
         return results;
     }
 
-    private async Task<UserArchiveResult> UnarchiveOneAsync(IUser performer, Guid key, bool? enable, ArchiveSource source)
+    private async Task<(UserArchiveResult Result, UserUnarchivedNotification? Notification)> UnarchiveOneAsync(IUser performer, Guid key, bool? enable, ArchiveSource source)
     {
         IUser? target = await _userService.GetAsync(key);
         UserArchiveResult? refused = await AuthoriseAsync(performer, key, target);
         if (refused is not null)
         {
-            return refused;
+            return (refused, null);
         }
 
         bool reEnabled = false;
@@ -49,7 +59,7 @@ internal sealed partial class ArchivedUserService
             if (record is null)
             {
                 scope.Complete();
-                return new UserArchiveResult(key, ArchiveResultStatus.NotArchived);
+                return (new UserArchiveResult(key, ArchiveResultStatus.NotArchived), null);
             }
 
             // AU-11: the request can only narrow the site policy, and never enables a user who was disabled
@@ -76,8 +86,9 @@ internal sealed partial class ArchivedUserService
         }
 
         await WriteCoreAuditAsync(performer.Key, target, ArchiveAuditAction.Unarchived, source);
-        await _events.PublishAsync(new UserUnarchivedNotification(new UserUnarchiveEvent(key, performer.Key, source, reEnabled), _messagesFactory.Get()));
-        return new UserArchiveResult(key, ArchiveResultStatus.Unarchived, coreStatus);
+        return (
+            new UserArchiveResult(key, ArchiveResultStatus.Unarchived, coreStatus),
+            new UserUnarchivedNotification(new UserUnarchiveEvent(key, performer.Key, source, reEnabled), _messagesFactory.Get()));
     }
 
     public async Task<PagedModel<ArchivedUserView>> GetArchivedAsync(Guid performerKey, int skip, int take, string? filter, ArchivedUserOrder orderBy, Direction direction)
@@ -121,7 +132,7 @@ internal sealed partial class ArchivedUserService
         }
 
         string? archivedBy = record.ArchivedByUserKey is { } by ? (await _userService.GetAsync(by))?.Name : null;
-        return new ArchivedUserView(user, record, archivedBy, user.UserState != UserState.Disabled);
+        return new ArchivedUserView(user, record, archivedBy, !UserStateRules.IsDisabled(user));
     }
 
     public async Task<HashSet<Guid>> GetArchivedKeysAsync()
@@ -161,11 +172,9 @@ internal sealed partial class ArchivedUserService
             return [];
         }
 
-        Dictionary<Guid, IUser> users = (await _userService.GetAsync(records.Select(r => r.UserKey).ToArray())).ToDictionary(u => u.Key);
-        Guid[] performerKeys = records.Where(r => r.ArchivedByUserKey.HasValue).Select(r => r.ArchivedByUserKey!.Value).Distinct().ToArray();
-        Dictionary<Guid, string?> performerNames = performerKeys.Length == 0
-            ? new Dictionary<Guid, string?>()
-            : (await _userService.GetAsync(performerKeys)).ToDictionary(u => u.Key, u => u.Name);
+        Dictionary<Guid, IUser> users = await GetUsersByKeyAsync(records.Select(r => r.UserKey));
+        Dictionary<Guid, string?> performerNames = (await GetUsersByKeyAsync(records.Where(r => r.ArchivedByUserKey.HasValue).Select(r => r.ArchivedByUserKey!.Value)))
+            .ToDictionary(kv => kv.Key, kv => kv.Value.Name);
 
         var views = new List<ArchivedUserView>(records.Count);
         foreach (ArchivedUserRecord record in records)
@@ -177,7 +186,7 @@ internal sealed partial class ArchivedUserService
             }
 
             string? archivedBy = record.ArchivedByUserKey is { } by ? performerNames.GetValueOrDefault(by) : null;
-            views.Add(new ArchivedUserView(user, record, archivedBy, user.UserState != UserState.Disabled));
+            views.Add(new ArchivedUserView(user, record, archivedBy, !UserStateRules.IsDisabled(user)));
         }
 
         return views;

@@ -104,7 +104,8 @@ public class ArchivedUserServiceArchiveTests
         Assert.Equal(2, _f.AuditRows.Count);
         Assert.Equal(ArchiveAuditAction.Unarchived, _f.AuditRows[0].Action);
         Assert.Equal(ArchiveSource.Reconcile, _f.AuditRows[0].Source);
-        Assert.Null(_f.AuditRows[0].PerformedByUserKey);
+        // Review BS-4 (AU-07): a known backoffice user triggered this reconcile, so they are the performer.
+        Assert.Equal(admin.Key, _f.AuditRows[0].PerformedByUserKey);
         Assert.Equal(ArchiveAuditAction.Archived, _f.AuditRows[1].Action);
         await _f.UserService.Received(1).DisableAsync(admin.Key, Only(target.Key));
         Assert.False(_f.Records[target.Key].WasDisabledBefore);
@@ -178,6 +179,7 @@ public class ArchivedUserServiceArchiveTests
     {
         IUser performer = _f.AddAdmin("Performer");
         performer.UserState.Returns(UserState.Disabled);
+        performer.IsApproved.Returns(false);
         if (!performerExists)
         {
             _f.RemoveUser(performer.Key);

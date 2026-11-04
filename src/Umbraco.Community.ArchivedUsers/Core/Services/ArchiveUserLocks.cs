@@ -4,7 +4,8 @@ namespace Umbraco.Community.ArchivedUsers.Core.Services;
 /// 64 striped <see cref="SemaphoreSlim"/>s keyed by user key, registered as a DI singleton (never a static).
 /// Closes the same-node race in which two concurrent archives of one user could store a wrong
 /// <c>wasDisabledBefore</c> (docs/design.md 7.2, P6). Across nodes the unique index still guarantees one record.
-/// Not re-entrant: a handler of <c>UserArchivingNotification</c> must not archive the same user.
+/// Not re-entrant, and striped: a handler of <c>UserArchivingNotification</c> must not archive or unarchive any
+/// user (another user can share the stripe). The Archived and Unarchived notifications are published after release.
 /// </summary>
 internal sealed class ArchiveUserLocks : IArchiveUserLocks
 {

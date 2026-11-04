@@ -47,7 +47,7 @@ internal sealed partial class ArchivedUserService
     private async Task<List<IUser>> GetCleanUpCandidatesAsync(Guid performerKey)
     {
         IUser? performer = await _userService.GetAsync(performerKey);
-        if (performer is null || performer.UserState == UserState.Disabled)
+        if (!UserStateRules.CanPerform(performer))
         {
             return [];
         }
@@ -66,10 +66,10 @@ internal sealed partial class ArchivedUserService
                 .GetAll(pageIndex, CleanUpPageSize, out total, "Name", Direction.Ascending, [UserState.Disabled], userGroups: null)
                 .ToArray();
             candidates.AddRange(page.Where(u =>
-                u.UserState == UserState.Disabled // the state query also matches invited users
+                UserStateRules.IsDisabled(u) // the state query also matches invited users; locked-out users report LockedOut
                 && !archived.Contains(u.Key)
                 && !UserVisibility.IsSuperUser(u.Key)
-                && u.Key != performer.Key
+                && u.Key != performer!.Key
                 && UserVisibility.CanSee(performer, u)));
             if (page.Length == 0)
             {

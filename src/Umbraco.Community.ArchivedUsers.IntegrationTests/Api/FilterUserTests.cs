@@ -106,6 +106,41 @@ public class FilterUserTests : FilterUserTestBase
         Assert.That(ids, Does.Not.Contain(Seeded[1].Key));
     }
 
+    /// <summary>Review BQ-1: no skip or take means core's defaults (skip 0, take 100), as S1 found.</summary>
+    [Test]
+    public async Task Filter_user_without_skip_or_take_uses_core_defaults()
+    {
+        (List<Guid> ids, int total) = await GetAsync(AdminClient, "filter=fltr");
+
+        Assert.That(total, Is.EqualTo(22));
+        Assert.That(ids, Has.Count.EqualTo(22));
+    }
+
+    /// <summary>Review BQ-1, Review Focus 4: paging edges over HTTP.</summary>
+    [TestCase(22, 10)]
+    [TestCase(100, 10)]
+    [TestCase(0, 0)]
+    public async Task Filter_user_skip_past_total_or_take_zero_returns_no_items_and_the_total(int skip, int take)
+    {
+        (List<Guid> ids, int total) = await GetAsync(AdminClient, $"filter=fltr&skip={skip}&take={take}");
+
+        Assert.That(ids, Is.Empty);
+        Assert.That(total, Is.EqualTo(22));
+    }
+
+    /// <summary>Review BS-1: an archived user who is disabled and locked out is hidden too.</summary>
+    [Test]
+    public async Task Filter_user_hides_archived_disabled_locked_out_user()
+    {
+        IUser locked = await Users.DisableAndLockOutAsync(ArchivedUsers.First());
+
+        (List<Guid> ids, int total) = await GetAsync(AdminClient, "filter=fltr&take=100");
+
+        Assert.That(locked.UserState, Is.EqualTo(UserState.LockedOut));
+        Assert.That(ids, Does.Not.Contain(locked.Key));
+        Assert.That(total, Is.EqualTo(22));
+    }
+
     /// <summary>T3, AU-03: an enabled user with a record is never hidden.</summary>
     [Test]
     public async Task Filter_user_shows_archived_but_enabled_user()
@@ -256,5 +291,21 @@ public class FilterUserHideDisabledTests : FilterUserTestBase
 
         Assert.That(total, Is.EqualTo(22));
         Assert.That(ids, Is.EqualTo(ExpectedByName()));
+    }
+}
+
+/// <summary>Review BQ-1: a first core page that is entirely archived is refilled from the following users.</summary>
+[TestFixture]
+public class FilterUserArchivedFirstPageTests : FilterUserTestBase
+{
+    protected override int[] ArchivedPositions => [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+    [Test]
+    public async Task Filter_user_first_page_all_archived_is_filled_by_the_next_users()
+    {
+        (List<Guid> ids, int total) = await GetAsync(AdminClient, "filter=fltr&orderBy=Name&orderDirection=Ascending&skip=0&take=10");
+
+        Assert.That(total, Is.EqualTo(15));
+        Assert.That(ids, Is.EqualTo(Seeded.Skip(10).Take(10).Select(u => u.Key)));
     }
 }

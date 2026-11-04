@@ -191,6 +191,28 @@ public class ArchivedUsersApiTests : ArchivedUsersApiTestBase
         Assert.That(item.GetProperty("stale").GetBoolean(), Is.True);
     }
 
+    // ---- Review BQ-2: orphan and renamed users against the real services ----
+
+    [Test]
+    public async Task List_skips_orphan_record_and_shows_current_name_after_rename()
+    {
+        (_, HttpClient client) = await AdminAsync();
+        IUser renamed = await ArchivedAsync(client, await Users.CreateEditorAsync("Old Name"));
+        IUser reloaded = (await UserService.GetAsync(renamed.Key))!;
+        reloaded.Name = "New Name";
+        UserService.Save(reloaded);
+        var orphan = Guid.NewGuid();
+        await InsertRecordAsync(orphan);
+
+        HttpResponseMessage response = await client.GetAsync(Root);
+        JsonElement list = await ReadJsonAsync(response);
+
+        var items = list.GetProperty("items").EnumerateArray().ToList();
+        Assert.That(items.Select(i => i.GetProperty("user").GetProperty("id").GetGuid()), Does.Not.Contain(orphan));
+        Assert.That(items.Single().GetProperty("user").GetProperty("name").GetString(), Is.EqualTo("New Name"));
+        Assert.That(list.GetProperty("total").GetInt32(), Is.EqualTo(1));
+    }
+
     // ---- Mixed bulk (P9) and double submit (P6) ----
 
     [Test]

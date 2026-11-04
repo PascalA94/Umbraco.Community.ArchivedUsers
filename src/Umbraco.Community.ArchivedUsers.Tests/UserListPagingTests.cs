@@ -68,6 +68,7 @@ public class UserListPagingTests
         var user = Substitute.For<IUser>();
         user.Key.Returns(Guid.NewGuid());
         user.UserState.Returns(state);
+        user.IsApproved.Returns(state != UserState.Disabled);
         return user;
     }
 }

@@ -31,6 +31,7 @@ public class ArchivedUserServiceUnarchiveTests
     {
         IUser performer = _f.AddAdmin("Performer");
         performer.UserState.Returns(UserState.Disabled);
+        performer.IsApproved.Returns(false);
         if (!performerExists)
         {
             _f.RemoveUser(performer.Key);

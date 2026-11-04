@@ -38,11 +38,14 @@ public class CleanUpTests : ArchivedUsersIntegrationTestBase
     {
         IUser manager = await Users.CreateUserManagerAsync();
         IUser disabledAdmin = await Users.CreateAsync("Former admin", [Constants.Security.AdminGroupAlias], UserState.Disabled);
+        IUser disabledEditor = await Users.CreateEditorAsync("Former editor", UserState.Disabled);
 
         await Service.ArchiveAllDisabledAsync(manager.Key, null);
 
         using ICoreScope scope = GetRequiredService<ICoreScopeProvider>().CreateCoreScope(autoComplete: true);
-        Assert.That(await GetRequiredService<IArchivedUserRepository>().GetAsync(disabledAdmin.Key), Is.Null);
+        var repository = GetRequiredService<IArchivedUserRepository>();
+        Assert.That(await repository.GetAsync(disabledAdmin.Key), Is.Null);
+        Assert.That(await repository.GetAsync(disabledEditor.Key), Is.Not.Null, "clean-up did run (review BS-6)");
     }
 }
 
