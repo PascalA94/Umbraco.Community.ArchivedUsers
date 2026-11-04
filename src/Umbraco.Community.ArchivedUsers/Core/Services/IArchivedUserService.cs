@@ -1,3 +1,5 @@
+using Umbraco.Cms.Core;
+using Umbraco.Cms.Core.Models;
 using Umbraco.Community.ArchivedUsers.Core.Models;
 
 namespace Umbraco.Community.ArchivedUsers.Core.Services;
@@ -17,4 +19,21 @@ public interface IArchivedUserService
 
     /// <summary>Archives every user the preview counts, with source <see cref="ArchiveSource.CleanUp"/> (F3).</summary>
     Task<IReadOnlyList<UserArchiveResult>> ArchiveAllDisabledAsync(Guid performerKey, string? reason);
+
+    /// <summary>
+    /// Removes each user's archive record. The user stays disabled (D3) unless the site setting
+    /// <c>UnarchiveEnablesUser</c> is on and the user was enabled before archiving; <paramref name="enable"/> can only
+    /// narrow that (AU-11). Callers reject <c>enable: true</c> with the setting off before calling.
+    /// </summary>
+    Task<IReadOnlyList<UserArchiveResult>> UnarchiveAsync(Guid performerKey, ISet<Guid> userKeys, bool? enable, ArchiveSource source);
+
+    /// <summary>The Archived view: records the performer may see, searched, sorted and paged in memory. Read-only (AU-14).</summary>
+    Task<PagedModel<ArchivedUserView>> GetArchivedAsync(Guid performerKey, int skip, int take, string? filter, ArchivedUserOrder orderBy, Direction direction);
+
+    /// <summary>One archived user, or null when not archived or not visible to the performer.</summary>
+    Task<ArchivedUserView?> GetArchivedUserAsync(Guid performerKey, Guid userKey);
+
+    Task<HashSet<Guid>> GetArchivedKeysAsync();
+
+    Task<bool> IsArchivedAsync(Guid userKey);
 }
