@@ -114,11 +114,15 @@ export async function newSession(browser: Browser, email: string, password: stri
 export async function openUserActions(page: Page, id: string): Promise<string[]> {
   await page.goto(`/umbraco/section/user-management/workspace/user/edit/${id}`);
   const menu = page.locator('umb-workspace-entity-action-menu');
-  await menu.locator('uui-button').first().click();
-  // Read only the opened Actions menu: the section sidebar's menu items are visible too, and a slow runner can
-  // reach this line before the Actions menu has rendered.
+  // Read only the opened Actions menu: the section sidebar's menu items are visible too. On a slow runner the first
+  // click can land before the workspace is ready and open nothing, so click again until the menu shows.
   const items = menu.locator('uui-menu-item:visible');
-  await items.first().waitFor();
+  await expect(async () => {
+    if (!(await items.count())) {
+      await menu.locator('uui-button').first().click();
+    }
+    await expect(items.first()).toBeVisible({ timeout: 5_000 });
+  }).toPass({ timeout: 60_000 });
   await page.waitForTimeout(500);
   return items.evaluateAll((els) => els.map((e) => e.getAttribute('label') ?? ''));
 }
@@ -134,3 +138,19 @@ export async function toasts(page: Page): Promise<string> {
 }
 
 export const confirmModal = (page: Page) => page.locator('archived-users-archive-confirm-modal');
+
+/**
+ * Clicks a selection-bar bulk action and its confirm button. On a slow runner the first click can land before the
+ * action is ready and open nothing, so it retries until the confirm modal is really visible. Never clicks Confirm twice.
+ */
+export async function bulkActionAndConfirm(page: Page, label: string): Promise<void> {
+  const confirm = page.locator('uui-button#confirm').filter({ visible: true });
+  await expect(async () => {
+    if (!(await confirm.count())) {
+      await page.getByRole('button', { name: label, exact: true }).filter({ visible: true }).first().click();
+    }
+    await expect(confirm).toBeVisible({ timeout: 5_000 });
+  }).toPass({ timeout: 60_000 });
+  await confirm.click();
+}
+

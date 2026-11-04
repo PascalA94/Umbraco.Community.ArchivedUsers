@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { consoleGuard } from '../support/console-guard.js';
-import { Api, env, login, newSession, runId, toasts } from '../support/backoffice.js';
+import { Api, bulkActionAndConfirm, env, login, newSession, runId, toasts } from '../support/backoffice.js';
 
 // P8. The admin case can't be selected in the UI (core hides admins from non-admins), so a non-admin archiving an
 // admin is covered by the API test Non_admin_mixed_bulk_returns_per_user_statuses instead.
@@ -20,9 +20,7 @@ test('UC2 bulk archive as a non-admin user manager: self is skipped', async ({ p
     await card.locator('#select-checkbox, uui-checkbox').first().click({ force: true });
   }
 
-  // The visible selection-bar button: the page also holds hidden buttons with the same name.
-  await page.getByRole('button', { name: 'Archive', exact: true }).filter({ visible: true }).first().click();
-  await page.locator('uui-button#confirm').click();
+  await bulkActionAndConfirm(page, 'Archive');
   const text = await toasts(page);
   expect(text).toContain('1 archived, 1 skipped');
   expect(text).toContain("you can't archive yourself");

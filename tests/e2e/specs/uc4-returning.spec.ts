@@ -1,6 +1,6 @@
 import { expect, test } from '@playwright/test';
 import { consoleGuard } from '../support/console-guard.js';
-import { Api, env, login, runId } from '../support/backoffice.js';
+import { Api, bulkActionAndConfirm, env, login, runId } from '../support/backoffice.js';
 
 test('UC4 a returning contractor comes back disabled, then core Enable restores them', async ({ page }) => {
   const guard = consoleGuard(page);
@@ -14,9 +14,7 @@ test('UC4 a returning contractor comes back disabled, then core Enable restores 
   const row = page.locator('uui-table-row', { hasText: `Contractor ${runId}` }).first();
   await row.hover();
   await row.locator('uui-checkbox').first().click({ force: true });
-  // The visible selection-bar button: the page also holds hidden buttons with the same name.
-  await page.getByRole('button', { name: 'Unarchive', exact: true }).filter({ visible: true }).first().click();
-  await page.locator('uui-button#confirm').click();
+  await bulkActionAndConfirm(page, 'Unarchive');
   await expect(page.locator('uui-table-row', { hasText: `Contractor ${runId}` })).toHaveCount(0);
 
   expect(await api.listedInUsers(id, `Contractor ${runId}`)).toBe(true);
