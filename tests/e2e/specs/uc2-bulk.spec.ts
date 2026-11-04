@@ -20,7 +20,8 @@ test('UC2 bulk archive as a non-admin user manager: self is skipped', async ({ p
     await card.locator('#select-checkbox, uui-checkbox').first().click({ force: true });
   }
 
-  await page.getByRole('button', { name: 'Archive', exact: true }).first().click();
+  // The visible selection-bar button: the page also holds hidden buttons with the same name.
+  await page.getByRole('button', { name: 'Archive', exact: true }).filter({ visible: true }).first().click();
   await page.locator('uui-button#confirm').click();
   const text = await toasts(page);
   expect(text).toContain('1 archived, 1 skipped');

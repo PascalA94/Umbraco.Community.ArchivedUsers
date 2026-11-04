@@ -14,7 +14,8 @@ test('UC4 a returning contractor comes back disabled, then core Enable restores 
   const row = page.locator('uui-table-row', { hasText: `Contractor ${runId}` }).first();
   await row.hover();
   await row.locator('uui-checkbox').first().click({ force: true });
-  await page.getByRole('button', { name: 'Unarchive', exact: true }).first().click();
+  // The visible selection-bar button: the page also holds hidden buttons with the same name.
+  await page.getByRole('button', { name: 'Unarchive', exact: true }).filter({ visible: true }).first().click();
   await page.locator('uui-button#confirm').click();
   await expect(page.locator('uui-table-row', { hasText: `Contractor ${runId}` })).toHaveCount(0);
 

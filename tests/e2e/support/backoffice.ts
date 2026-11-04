@@ -113,11 +113,14 @@ export async function newSession(browser: Browser, email: string, password: stri
 /** Opens the user editor and its entity action menu; returns the visible action labels. */
 export async function openUserActions(page: Page, id: string): Promise<string[]> {
   await page.goto(`/umbraco/section/user-management/workspace/user/edit/${id}`);
-  await page.locator('umb-workspace-entity-action-menu uui-button').first().click();
-  // The header also holds (hidden) menu items, so wait for a visible one: the opened action menu.
-  await page.locator('uui-menu-item:visible').first().waitFor();
+  const menu = page.locator('umb-workspace-entity-action-menu');
+  await menu.locator('uui-button').first().click();
+  // Read only the opened Actions menu: the section sidebar's menu items are visible too, and a slow runner can
+  // reach this line before the Actions menu has rendered.
+  const items = menu.locator('uui-menu-item:visible');
+  await items.first().waitFor();
   await page.waitForTimeout(500);
-  return page.locator('uui-menu-item:visible').evaluateAll((els) => els.map((e) => e.getAttribute('label') ?? ''));
+  return items.evaluateAll((els) => els.map((e) => e.getAttribute('label') ?? ''));
 }
 
 /** Text of every notification currently shown (core renders the message as text in a shadow root). */
