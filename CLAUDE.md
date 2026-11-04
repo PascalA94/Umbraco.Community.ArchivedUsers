@@ -27,7 +27,7 @@ Tests__Database__SQLServerMasterConnectionString="Server=localhost,1433;User Id=
 # Client (Lit + TypeScript + Vite); output goes to ../wwwroot, which is committed
 cd src/Umbraco.Community.ArchivedUsers/Client
 npm ci --ignore-scripts && npm run build && npm test
-npm run generate:api          # regenerate src/api/generated from a running demo site
+npm run generate:api          # regenerate src/api/generated from a running demo site (Swashbuckle path on v17)
 bash ../../../build/check-xss.sh   # run from the repo root
 
 # Demo site (SQLite; seeds demo users when ArchivedUsersDemo:Seed is true)
@@ -45,7 +45,7 @@ bash build/check-vulnerable.sh
 ## Layout
 
 - `src/Umbraco.Community.ArchivedUsers/Core/`: settings, models, NPoco DTOs and repository, migration plan, `UserVisibility`, `UserStateRules`, `ArchivedUserService` (+ partials), `ArchiveUserLocks`, notifications, handlers. Must not reference `Filter`/`Filter2`, Swashbuckle or `Microsoft.AspNetCore.OpenApi`.
-- `src/Umbraco.Community.ArchivedUsers/Web/`: Management API controllers, the `/filter/user` filter (`ArchivedUserListFilterGate` + `ArchivedUserListFilter`), OpenAPI registration, the composer.
+- `src/Umbraco.Community.ArchivedUsers/Web/`: Management API controllers, the `/filter/user` filter (`ArchivedUserListFilterGate` + `ArchivedUserListFilter`), OpenAPI registration (v17 line: Swashbuckle document at `/umbraco/swagger/archived-users/swagger.json`; `main` uses Microsoft.AspNetCore.OpenApi), the composer.
 - `src/Umbraco.Community.ArchivedUsers/Client/`: manifests, archive-status global context, conditions, confirm modal, entity and bulk actions, Archived users view, generated API client.
 - `src/Umbraco.Community.ArchivedUsers.Tests/`: xUnit + NSubstitute. `src/Umbraco.Community.ArchivedUsers.IntegrationTests/`: NUnit + `Umbraco.Cms.Tests.Integration` (NUnit 3.14, matching Umbraco's test framework).
 - `demo/`: demo site (not packed). `tests/e2e/`: Playwright specs.
@@ -56,7 +56,7 @@ bash build/check-vulnerable.sh
 - **A disabled or locked-out performer may change nobody** (`UserStateRules.CanPerform`, P9). "Disabled" means `!IsApproved` (`UserStateRules.IsDisabled`), never `UserState == Disabled`: core reports `LockedOut` before `Disabled`.
 - Archive: disable through `IUserService.DisableAsync` one user at a time, rotate the security stamp (AU-02), then record + audit row in one scope. Unarchive deletes the record **before** enabling, inside one scope, so the `UserSaved` handler writes no duplicate row.
 - The per-user `ArchiveUserLocks` lock (DI singleton, striped, not re-entrant) is held from the state read to the record write. Archived/Unarchived notifications are published **after** the lock is released.
-- The list filter hides only archived **and** disabled users (AU-03), acts only on core's `FilterUserFilterController` / `Filter2` / GET (AU-10), and fails open to core's response on any exception. Hide switch off = core behaviour exactly.
+- The list filter hides only archived **and** disabled users (AU-03), acts only on core's `FilterUserFilterController` / `Filter` (v17 line; `Filter2` on `main`) / GET (AU-10), and fails open to core's response on any exception. Hide switch off = core behaviour exactly.
 - GET never writes. Stale records are flagged on read and reconciled at start-up or on the next archive.
 - Request models carry only `userIds`, `reason`, `enable`; performer, source and time come from the server. JSON bodies only. Logs carry user keys only, never names, emails or reasons.
 - Client: no HTML sinks, no generic confirm modal, literal localisation keys only (`build/check-xss.sh` enforces it). User text is rendered with Lit text bindings.
@@ -68,7 +68,7 @@ bash build/check-vulnerable.sh
 
 1. Bump the four version files together and rebuild the client (`wwwroot/` is committed; CI fails on drift).
 2. `bash build/check-vulnerable.sh` must exit 0.
-   `bash build/check-release-version.sh v18.x.y` must exit 0 (`publish.yml` runs it, and checks the tag is on `main` or `v17`).
+   `bash build/check-release-version.sh v17.x.y` must exit 0 (`publish.yml` runs it, and checks the tag is on `main` or `v17`).
 3. Run the **Release checks** workflow by hand on the release branch (Actions → Release checks → Run workflow): Playwright e2e and SQL Server must pass. It does not run on PRs.
 4. Merge to `main` (or `v17`), tag `v18.x.y` (or `v17.x.y`) on the merge commit and push the tag. `publish.yml` packs and pushes with NuGet Trusted Publishing.
 5. `gh release create <tag> --prerelease --generate-notes` for prereleases.

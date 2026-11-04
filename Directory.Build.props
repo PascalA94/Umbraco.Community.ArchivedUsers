@@ -8,9 +8,9 @@
   -->
   <PropertyGroup>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <UmbracoTestVersion Condition="'$(UmbracoTestVersion)' == ''">18.3.0</UmbracoTestVersion>
-    <UmbracoDemoVersion Condition="'$(UmbracoDemoVersion)' == ''">18.3.0</UmbracoDemoVersion>
-    <!-- UserKind.Api exists on 18; the v17 line removes this constant if 17.8 has no API users (plan P13a). -->
+    <UmbracoTestVersion Condition="'$(UmbracoTestVersion)' == ''">17.8.0</UmbracoTestVersion>
+    <UmbracoDemoVersion Condition="'$(UmbracoDemoVersion)' == ''">17.8.0</UmbracoDemoVersion>
+    <!-- UserKind.Api exists on 17.8 and 18, so both lines define this (plan P13a). -->
     <DefineConstants>$(DefineConstants);UMBRACO_HAS_API_USERS</DefineConstants>
   </PropertyGroup>
 </Project>

@@ -38,7 +38,11 @@ public class ArchivedUsersApiTests : ArchivedUsersApiTestBase
         HttpResponseMessage response = await client.PostAsync(Root + "/archive", Json(new { userIds = Enumerable.Range(0, 501).Select(_ => Guid.NewGuid()).ToArray() }));
 
         Assert.That(response.StatusCode, Is.EqualTo(HttpStatusCode.BadRequest));
-        Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/problem+json"));
+        // v17 line: core 17.x writes its own ProblemDetails 400s as application/json (18.x uses application/problem+json).
+        Assert.That(response.Content.Headers.ContentType?.MediaType, Is.EqualTo("application/json"));
+        JsonElement problem = JsonDocument.Parse(await response.Content.ReadAsStringAsync()).RootElement;
+        Assert.That(problem.GetProperty("status").GetInt32(), Is.EqualTo(400));
+        Assert.That(problem.TryGetProperty("title", out _), Is.True);
     }
 
     [Test]
@@ -361,7 +365,7 @@ public class ArchivedUsersApiTests : ArchivedUsersApiTestBase
     [Test]
     public async Task Package_openapi_document_lists_seven_operations_under_Archived_Users()
     {
-        HttpResponseMessage response = await CreateAnonymousClient().GetAsync("/umbraco/openapi/archived-users.json");
+        HttpResponseMessage response = await CreateAnonymousClient().GetAsync("/umbraco/swagger/archived-users/swagger.json");
         JsonElement doc = await ReadJsonAsync(response);
 
         var operations = doc.GetProperty("paths").EnumerateObject()
@@ -370,6 +374,18 @@ public class ArchivedUsersApiTests : ArchivedUsersApiTestBase
         Assert.That(operations, Has.Count.EqualTo(7));
         Assert.That(operations.All(o => o.Op.GetProperty("tags").EnumerateArray().Any(t => t.GetString() == "Archived Users")), Is.True);
         Assert.That(operations.All(o => o.Path.StartsWith("/umbraco/management/api/v1/archived-users", StringComparison.Ordinal)), Is.True);
+
+        // v17 line (review V17-1): the Swashbuckle registration must keep core's operation-ID naming, so the generated
+        // client keeps its function names, and must mark every operation as needing a backoffice token.
+        Assert.That(
+            operations.Select(o => o.Op.GetProperty("operationId").GetString()),
+            Is.EquivalentTo(new[]
+            {
+                "GetArchivedUsers", "GetArchivedUsersById", "PostArchivedUsersArchive", "PostArchivedUsersCleanUp",
+                "GetArchivedUsersCleanUpPreview", "GetArchivedUsersConfig", "PostArchivedUsersUnarchive",
+            }));
+        Assert.That(operations.All(o => o.Op.TryGetProperty("security", out JsonElement s) && s.GetArrayLength() > 0), Is.True, "security requirement");
+        Assert.That(operations.All(o => o.Op.GetProperty("responses").TryGetProperty("401", out _)), Is.True, "401 response");
     }
 }
 

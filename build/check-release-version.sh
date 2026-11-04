@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Release gate (review C-13): every version file must equal the tag's version, so NuGet never ships a backoffice
-# manifest with a stale version. Usage: build/check-release-version.sh v18.0.0-alpha.1. Run from the repository root.
+# manifest with a stale version. Usage: build/check-release-version.sh v17.0.0-alpha.1. Run from the repository root.
 set -euo pipefail
 
 tag="${1:?usage: check-release-version.sh <tag>}"

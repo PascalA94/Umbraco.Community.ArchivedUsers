@@ -578,7 +578,7 @@ const ue = () => ({
     },
     trace: s("TRACE")
   };
-}, C = he(_({ baseUrl: "http://localhost:28331/" })), pe = (e) => (e?.client ?? C).get({
+}, C = he(_({ baseUrl: "http://localhost:28331" })), pe = (e) => (e?.client ?? C).get({
   security: [{ scheme: "bearer", type: "http" }],
   url: "/umbraco/management/api/v1/archived-users",
   ...e
@@ -586,21 +586,21 @@ const ue = () => ({
   security: [{ scheme: "bearer", type: "http" }],
   url: "/umbraco/management/api/v1/archived-users/{id}",
   ...e
-}), be = (e) => (e.client ?? C).post({
+}), be = (e) => (e?.client ?? C).post({
   security: [{ scheme: "bearer", type: "http" }],
   url: "/umbraco/management/api/v1/archived-users/archive",
   ...e,
   headers: {
     "Content-Type": "application/json",
-    ...e.headers
+    ...e?.headers
   }
-}), me = (e) => (e.client ?? C).post({
+}), me = (e) => (e?.client ?? C).post({
   security: [{ scheme: "bearer", type: "http" }],
   url: "/umbraco/management/api/v1/archived-users/clean-up",
   ...e,
   headers: {
     "Content-Type": "application/json",
-    ...e.headers
+    ...e?.headers
   }
 }), ge = (e) => (e?.client ?? C).get({
   security: [{ scheme: "bearer", type: "http" }],
@@ -610,13 +610,13 @@ const ue = () => ({
   security: [{ scheme: "bearer", type: "http" }],
   url: "/umbraco/management/api/v1/archived-users/config",
   ...e
-}), ve = (e) => (e.client ?? C).post({
+}), ve = (e) => (e?.client ?? C).post({
   security: [{ scheme: "bearer", type: "http" }],
   url: "/umbraco/management/api/v1/archived-users/unarchive",
   ...e,
   headers: {
     "Content-Type": "application/json",
-    ...e.headers
+    ...e?.headers
   }
 }), A = K, Ee = {
   config: (e) => z(e, we({ client: A })),
