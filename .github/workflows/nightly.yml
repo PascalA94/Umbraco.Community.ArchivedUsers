@@ -3,14 +3,9 @@ name: Nightly
 on:
   schedule:
     - cron: '30 2 * * *'
+  # Also run by hand (Actions -> Nightly -> Run workflow) before every release. Not run on PRs: e2e and
+  # SQL Server take 10-25 minutes and catch Umbraco or database regressions, not per-PR changes.
   workflow_dispatch:
-  # workflow_dispatch only works once this file is on the default branch, so PRs touching
-  # the schema or the integration tests run the SQL Server job too.
-  pull_request:
-    paths:
-      - 'src/Umbraco.Community.ArchivedUsers/Core/**'
-      - 'src/Umbraco.Community.ArchivedUsers.IntegrationTests/**'
-      - '.github/workflows/nightly.yml'
 
 permissions:
   contents: read
