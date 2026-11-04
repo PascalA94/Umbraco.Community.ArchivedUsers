@@ -39,26 +39,26 @@ export const getArchivedUsersById = <ThrowOnError extends boolean = false>(optio
 /**
  * Archives users: disables them, records who, when and why, and hides them from the Users list.
  */
-export const postArchivedUsersArchive = <ThrowOnError extends boolean = false>(options: Options<PostArchivedUsersArchiveData, ThrowOnError>): RequestResult<PostArchivedUsersArchiveResponses, PostArchivedUsersArchiveErrors, ThrowOnError> => (options.client ?? client).post<PostArchivedUsersArchiveResponses, PostArchivedUsersArchiveErrors, ThrowOnError>({
+export const postArchivedUsersArchive = <ThrowOnError extends boolean = false>(options?: Options<PostArchivedUsersArchiveData, ThrowOnError>): RequestResult<PostArchivedUsersArchiveResponses, PostArchivedUsersArchiveErrors, ThrowOnError> => (options?.client ?? client).post<PostArchivedUsersArchiveResponses, PostArchivedUsersArchiveErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/umbraco/management/api/v1/archived-users/archive',
     ...options,
     headers: {
         'Content-Type': 'application/json',
-        ...options.headers
+        ...options?.headers
     }
 });
 
 /**
  * Archives every disabled user the current user may see.
  */
-export const postArchivedUsersCleanUp = <ThrowOnError extends boolean = false>(options: Options<PostArchivedUsersCleanUpData, ThrowOnError>): RequestResult<PostArchivedUsersCleanUpResponses, PostArchivedUsersCleanUpErrors, ThrowOnError> => (options.client ?? client).post<PostArchivedUsersCleanUpResponses, PostArchivedUsersCleanUpErrors, ThrowOnError>({
+export const postArchivedUsersCleanUp = <ThrowOnError extends boolean = false>(options?: Options<PostArchivedUsersCleanUpData, ThrowOnError>): RequestResult<PostArchivedUsersCleanUpResponses, PostArchivedUsersCleanUpErrors, ThrowOnError> => (options?.client ?? client).post<PostArchivedUsersCleanUpResponses, PostArchivedUsersCleanUpErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/umbraco/management/api/v1/archived-users/clean-up',
     ...options,
     headers: {
         'Content-Type': 'application/json',
-        ...options.headers
+        ...options?.headers
     }
 });
 
@@ -83,12 +83,12 @@ export const getArchivedUsersConfig = <ThrowOnError extends boolean = false>(opt
 /**
  * Unarchives users. They stay disabled unless the site is configured to restore their earlier state.
  */
-export const postArchivedUsersUnarchive = <ThrowOnError extends boolean = false>(options: Options<PostArchivedUsersUnarchiveData, ThrowOnError>): RequestResult<PostArchivedUsersUnarchiveResponses, PostArchivedUsersUnarchiveErrors, ThrowOnError> => (options.client ?? client).post<PostArchivedUsersUnarchiveResponses, PostArchivedUsersUnarchiveErrors, ThrowOnError>({
+export const postArchivedUsersUnarchive = <ThrowOnError extends boolean = false>(options?: Options<PostArchivedUsersUnarchiveData, ThrowOnError>): RequestResult<PostArchivedUsersUnarchiveResponses, PostArchivedUsersUnarchiveErrors, ThrowOnError> => (options?.client ?? client).post<PostArchivedUsersUnarchiveResponses, PostArchivedUsersUnarchiveErrors, ThrowOnError>({
     security: [{ scheme: 'bearer', type: 'http' }],
     url: '/umbraco/management/api/v1/archived-users/unarchive',
     ...options,
     headers: {
         'Content-Type': 'application/json',
-        ...options.headers
+        ...options?.headers
     }
 });

@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         # floor: locked restore at the committed lock files (UmbracoTestVersion / UmbracoDemoVersion defaults).
-        # latest: newest 18.x, restored unlocked; the lock files it rewrites are never committed (P1).
+        # latest: newest 17.x, restored unlocked; the lock files it rewrites are never committed (P1).
         leg: [floor, latest]
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -83,14 +83,14 @@ jobs:
 
       - name: Restore (latest minor, unlocked)
         if: matrix.leg == 'latest'
-        run: dotnet restore src/Umbraco.Community.ArchivedUsers.slnx "-p:UmbracoTestVersion=18.*" "-p:UmbracoDemoVersion=18.*" --force-evaluate -p:RestoreLockedMode=false
+        run: dotnet restore src/Umbraco.Community.ArchivedUsers.slnx "-p:UmbracoTestVersion=17.*" "-p:UmbracoDemoVersion=17.*" --force-evaluate -p:RestoreLockedMode=false
 
       - name: Build
-        run: dotnet build src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-restore ${{ matrix.leg == 'latest' && '"-p:UmbracoTestVersion=18.*" "-p:UmbracoDemoVersion=18.*"' || '' }}
+        run: dotnet build src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-restore ${{ matrix.leg == 'latest' && '"-p:UmbracoTestVersion=17.*" "-p:UmbracoDemoVersion=17.*"' || '' }}
 
       # Unit and integration tests (SQLite). SQL Server and e2e run in release-checks.yml.
       - name: Test
-        run: dotnet test src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-build --logger "trx;LogFileName=results.trx" ${{ matrix.leg == 'latest' && '"-p:UmbracoTestVersion=18.*" "-p:UmbracoDemoVersion=18.*"' || '' }}
+        run: dotnet test src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-build --logger "trx;LogFileName=results.trx" ${{ matrix.leg == 'latest' && '"-p:UmbracoTestVersion=17.*" "-p:UmbracoDemoVersion=17.*"' || '' }}
 
       - name: Upload test results
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

@@ -25,13 +25,13 @@ namespace Umbraco.Community.ArchivedUsers.Web.Filters;
 /// control: anything unexpected falls back to core's own response (AU-10).
 /// </summary>
 /// <remarks>
-/// v18 line: core's live action is <c>Filter2</c> (with <c>userKinds</c>); <c>Filter</c> is a [NonAction] until v20.
-/// If core renames the action, this stops hiding, which is core behaviour, not a leak;
-/// <c>CoreContractTests.Filter_user_action_name_is_Filter2</c> fails loudly when that happens.
+/// v17 line: core's action is <c>Filter</c> (no <c>userKinds</c> parameter), FilterUserFilterController at
+/// release-17.8.0, commit 83984e2. If core renames the action, this stops hiding, which is core behaviour, not a leak;
+/// <c>CoreContractTests.Filter_user_action_name_is_Filter</c> fails loudly when that happens.
 /// </remarks>
 public sealed class ArchivedUserListFilter : IAsyncActionFilter
 {
-    public const string BoundActionName = "Filter2";
+    public const string BoundActionName = "Filter";
     public const string RouteTemplate = "umbraco/management/api/v{version:apiVersion}/filter/user";
 
     /// <summary>AU-13: above this many visible users the filter steps aside rather than load them all.</summary>
@@ -131,7 +131,7 @@ public sealed class ArchivedUserListFilter : IAsyncActionFilter
         }
 
         // Model binding has already run, so the arguments are core's own. Parameters the request did not supply are
-        // absent from ActionArguments; apply core's defaults (Filter2 at release-18.3.0, commit ee1861c; docs/spikes.md S1).
+        // absent from ActionArguments; apply core's defaults (Filter at release-17.8.0, commit 83984e2; docs/spikes.md S1).
         IDictionary<string, object?> args = context.ActionArguments;
         int skip = Arg(args, "skip", 0);
         int take = Arg(args, "take", 100);
@@ -142,9 +142,6 @@ public sealed class ArchivedUserListFilter : IAsyncActionFilter
         {
             IncludedUserGroups = Arg<HashSet<Guid>?>(args, "userGroupIds", null),
             IncludeUserStates = Arg<HashSet<UserState>?>(args, "userStates", null),
-#if UMBRACO_HAS_API_USERS
-            IncludeUserKinds = Arg<HashSet<UserKind>?>(args, "userKinds", null),
-#endif
             NameFilters = string.IsNullOrEmpty(text) ? null : new HashSet<string> { text },
         };
 

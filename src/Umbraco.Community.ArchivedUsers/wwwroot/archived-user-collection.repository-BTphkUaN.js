@@ -1,4 +1,4 @@
-import { a as o } from "./archived-users.api-C7fXqz2n.js";
+import { a as o } from "./archived-users.api-5Wnw0XqU.js";
 import { m as i } from "./map-item-DBjLDJ_H.js";
 import { UmbRepositoryBase as s } from "@umbraco-cms/backoffice/repository";
 class d extends s {

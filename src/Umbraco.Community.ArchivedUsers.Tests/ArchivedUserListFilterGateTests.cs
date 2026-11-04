@@ -16,7 +16,7 @@ namespace Umbraco.Community.ArchivedUsers.Tests;
 /// <summary>Review BS-5: the global gate costs nothing on other actions and fails open if the filter can't be built.</summary>
 public class ArchivedUserListFilterGateTests
 {
-    private static (ActionExecutingContext Context, IServiceProvider Services) Context(Type controller, string action = "Filter2")
+    private static (ActionExecutingContext Context, IServiceProvider Services) Context(Type controller, string action = "Filter")
     {
         var services = Substitute.For<IServiceProvider>();
         services.GetService(Arg.Any<Type>()).Returns(_ => throw new InvalidOperationException("cannot resolve"));
