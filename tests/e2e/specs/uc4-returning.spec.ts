@@ -11,6 +11,9 @@ test('UC4 a returning contractor comes back disabled, then core Enable restores 
 
   await page.goto('/umbraco/section/user-management/workspace/archived-users-root');
   await page.locator('archived-users-archived-user-table #search input').fill(`Contractor ${runId}`);
+  // Wait for the debounced search to narrow the table to this user. Selecting earlier lets the late reload redraw
+  // the table, and the confirm modal, under the test.
+  await expect(page.locator('archived-users-archived-user-table uui-table-row')).toHaveCount(1);
   const row = page.locator('uui-table-row', { hasText: `Contractor ${runId}` }).first();
   await row.hover();
   await row.locator('uui-checkbox').first().click({ force: true });
