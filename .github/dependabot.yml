@@ -1,0 +1,16 @@
+version: 2
+updates:
+  - package-ecosystem: nuget
+    directory: /src
+    schedule:
+      interval: weekly
+  - package-ecosystem: npm
+    directories:
+      - /src/Umbraco.Community.ArchivedUsers/Client
+      - /tests/e2e
+    schedule:
+      interval: weekly
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly

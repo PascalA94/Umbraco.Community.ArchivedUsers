@@ -1,0 +1,16 @@
+{
+  "$schema": "https://marketplace.umbraco.com/umbraco-marketplace-schema.json",
+  "Title": "Archived Users",
+  "Description": "Adds an Archived area to the Umbraco Users section. Archive leavers so they leave the Users list and user pickers while their history stays intact. Every archive and unarchive records who, whom, when and why. Archiving always disables the user and never deletes them.",
+  "Category": "Editor Tools",
+  "PackageType": "Package",
+  "LicenseTypes": ["Free"],
+  "DocumentationUrl": "https://github.com/PascalA94/Umbraco.Community.ArchivedUsers#readme",
+  "IssueTrackerUrl": "https://github.com/PascalA94/Umbraco.Community.ArchivedUsers/issues",
+  "LookingForContributors": true,
+  "AuthorDetails": {
+    "Name": "Pascal Meyer",
+    "Url": "https://github.com/PascalA94"
+  },
+  "Tags": ["users", "security", "governance"]
+}

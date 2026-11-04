@@ -1,0 +1,69 @@
+<Project Sdk="Microsoft.NET.Sdk.Razor">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <RootNamespace>Umbraco.Community.ArchivedUsers</RootNamespace>
+    <!-- Client assets in wwwroot are served at /App_Plugins/ArchivedUsers/ via static web assets -->
+    <StaticWebAssetBasePath>App_Plugins/ArchivedUsers</StaticWebAssetBasePath>
+    <!-- Audit direct and transitive dependencies; build/check-vulnerable.sh is the release gate (AU-15, T21) -->
+    <NuGetAuditMode>all</NuGetAuditMode>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <NoWarn>$(NoWarn);CS1591</NoWarn>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <PackageId>Umbraco.Community.ArchivedUsers</PackageId>
+    <Version>18.0.0-alpha.1</Version>
+    <Authors>Pascal Meyer</Authors>
+    <Description>Adds an Archived area to the Umbraco Users section. Archive leavers so they leave the Users list and user pickers, keep their history, and record who archived whom, when and why. Archiving always disables the user and never deletes them.</Description>
+    <Copyright>Copyright © Pascal Meyer</Copyright>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageProjectUrl>https://github.com/PascalA94/Umbraco.Community.ArchivedUsers</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/PascalA94/Umbraco.Community.ArchivedUsers</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>umbraco;umbraco-marketplace;users;security;governance</PackageTags>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <!-- Debugging support: Source Link plus a .snupkg symbol package -->
+  <PropertyGroup>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <!-- Deterministic, path-normalised builds in CI so published binaries are reproducible -->
+  <PropertyGroup Condition="'$(GITHUB_ACTIONS)' == 'true'">
+    <ContinuousIntegrationBuild>true</ContinuousIntegrationBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Floors: first releases where core refuses disabled users at sign-in, and above the
+         27 Oct 2026 advisories. Never lower them without re-opening AU-02 (docs/design.md section 10). -->
+    <PackageReference Include="Umbraco.Cms.Web.Common" Version="[18.3.0, 19.0.0)" />
+    <PackageReference Include="Umbraco.Cms.Api.Management" Version="[18.3.0, 19.0.0)" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <!-- The client source is not package content; only the built wwwroot assets ship -->
+    <Content Remove="Client\**" />
+    <None Include="Client\**" Pack="false" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <InternalsVisibleTo Include="Umbraco.Community.ArchivedUsers.Tests" />
+    <InternalsVisibleTo Include="Umbraco.Community.ArchivedUsers.IntegrationTests" />
+    <!-- NSubstitute proxies for internal types -->
+    <InternalsVisibleTo Include="DynamicProxyGenAssembly2" />
+  </ItemGroup>
+
+</Project>

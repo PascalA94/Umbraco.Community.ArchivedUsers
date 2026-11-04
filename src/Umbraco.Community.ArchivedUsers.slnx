@@ -1,0 +1,5 @@
+<Solution>
+  <Project Path="Umbraco.Community.ArchivedUsers/Umbraco.Community.ArchivedUsers.csproj" />
+  <Project Path="Umbraco.Community.ArchivedUsers.Tests/Umbraco.Community.ArchivedUsers.Tests.csproj" />
+  <Project Path="../demo/Umbraco.Community.ArchivedUsers.DemoSite/Umbraco.Community.ArchivedUsers.DemoSite.csproj" />
+</Solution>

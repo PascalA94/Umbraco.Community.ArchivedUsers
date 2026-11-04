@@ -1,0 +1,13 @@
+{
+  "name": "Umbraco.Community.ArchivedUsers",
+  "version": "18.0.0-alpha.1",
+  "allowTelemetry": true,
+  "extensions": [
+    {
+      "type": "bundle",
+      "alias": "ArchivedUsers.Bundle",
+      "name": "Archived Users Bundle",
+      "js": "/App_Plugins/ArchivedUsers/index.js"
+    }
+  ]
+}

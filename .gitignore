@@ -1,0 +1,48 @@
+# .NET build output
+bin/
+obj/
+
+# SQLite files created by tests or the demo site
+*.db
+*.db-shm
+*.db-wal
+
+# Frontend dependencies
+**/node_modules/
+
+# Note: src/Umbraco.Community.ArchivedUsers/wwwroot/ is the built client output (vite build from Client/)
+# and IS committed: dotnet pack needs it present, and CI fails if it drifts from a fresh build.
+
+# Demo site runtime data (never committed)
+demo/**/umbraco/Data/
+demo/**/umbraco/Logs/
+demo/**/wwwroot/media/
+demo/**/umbraco/models/
+
+# Playwright
+tests/e2e/node_modules/
+tests/e2e/test-results/
+tests/e2e/playwright-report/
+tests/e2e/.env
+
+# Pack output
+artifacts/
+
+# IDE
+.vs/
+.vscode/
+.idea/
+*.user
+*.suo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# NuGet
+*.nupkg
+*.snupkg
+
+# Claude Code personal context and superpowers scratch (the shared CLAUDE.md is committed)
+CLAUDE.local.md
+.superpowers/

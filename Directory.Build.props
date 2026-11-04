@@ -1,0 +1,16 @@
+<Project>
+  <!--
+    Lock files describe the floor: they are generated and committed at the default values of
+    UmbracoTestVersion and UmbracoDemoVersion below, and the floor CI leg restores with locked mode.
+    A latest-minor leg overrides these two properties and restores unlocked
+    (force-evaluate, RestoreLockedMode=false); its rewritten lock files are never committed.
+    Nothing else overrides these properties. See docs/plan.md, Global Constraints P1.
+  -->
+  <PropertyGroup>
+    <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
+    <UmbracoTestVersion Condition="'$(UmbracoTestVersion)' == ''">18.3.0</UmbracoTestVersion>
+    <UmbracoDemoVersion Condition="'$(UmbracoDemoVersion)' == ''">18.3.0</UmbracoDemoVersion>
+    <!-- UserKind.Api exists on 18; the v17 line removes this constant if 17.8 has no API users (plan P13a). -->
+    <DefineConstants>$(DefineConstants);UMBRACO_HAS_API_USERS</DefineConstants>
+  </PropertyGroup>
+</Project>
