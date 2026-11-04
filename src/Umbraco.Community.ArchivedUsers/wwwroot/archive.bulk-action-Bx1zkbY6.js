@@ -1,6 +1,6 @@
 import { a as s } from "./archived-users.api-C7fXqz2n.js";
 import { A as o } from "./archive-status.context-token-DXqk9-Pa.js";
-import { A as r } from "./index-Do39Oh5O.js";
+import { A as r } from "./index-DvzlBtPw.js";
 import { n } from "./notify-DthNN_4Z.js";
 import { r as c } from "./reload-collection-CezsmquS.js";
 import { UmbEntityBulkActionBase as h } from "@umbraco-cms/backoffice/entity-bulk-action";

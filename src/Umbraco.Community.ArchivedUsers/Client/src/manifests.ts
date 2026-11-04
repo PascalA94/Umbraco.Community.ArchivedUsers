@@ -1,4 +1,5 @@
 import { ARCHIVED_USERS_ARCHIVE_CONFIRM_MODAL_ALIAS } from './modal/archive-confirm.modal-token.js';
+import { ARCHIVED_USER_COLLECTION_ALIAS, manifests as archivedViewManifests } from './archived-view/manifests.js';
 import { UMB_USER_COLLECTION_ALIAS, UMB_USER_ENTITY_TYPE } from '@umbraco-cms/backoffice/user';
 import { UMB_COLLECTION_ALIAS_CONDITION } from '@umbraco-cms/backoffice/collection';
 import { UMB_IN_MODAL_CONDITION_ALIAS } from '@umbraco-cms/backoffice/modal';
@@ -6,9 +7,9 @@ import { UMB_IN_MODAL_CONDITION_ALIAS } from '@umbraco-cms/backoffice/modal';
 // Aliases are permanent once released (design 7.3).
 export const CAN_ARCHIVE_CONDITION = 'ArchivedUsers.Condition.User.CanArchive';
 export const IS_ARCHIVED_CONDITION = 'ArchivedUsers.Condition.User.IsArchived';
-export const ARCHIVED_USER_COLLECTION_ALIAS = 'ArchivedUsers.Collection.ArchivedUser';
 
 export const manifests: Array<UmbExtensionManifest> = [
+  ...archivedViewManifests,
   {
     type: 'globalContext',
     alias: 'ArchivedUsers.GlobalContext.ArchiveStatus',
