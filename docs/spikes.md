@@ -4,8 +4,15 @@ Public file. Never record details of an undisclosed vulnerability here; those go
 
 ## S0: Integration harness
 
-**Gate:** 
-**Result / Decision:** 
+**Gate:** GO
+**Result / Decision:** `HarnessServiceTests.Harness_boots_and_resolves_IUserService` and `HarnessTests.Harness_authenticates_backoffice_user_over_http` pass on SQLite (18.3.0). No fallback needed.
+
+- Base classes: service tests inherit `UmbracoIntegrationTest` with `[UmbracoTest(Database = NewSchemaPerTest)]`; HTTP tests inherit the package's `ApiTestBase : UmbracoTestServerTestBase` (also `NewSchemaPerTest`, `Boot = true`). `ManagementApiTest<T>` exists publicly but caches tokens in a static and needs a controller type parameter, so the package copies its auth flow instead.
+- `CreateAuthenticatedClientAsync(IUser)`: sets the password through a reset token (`ICoreBackOfficeUserManager.GeneratePasswordResetTokenAsync` + `IUserService.ChangePasswordAsync`), `POST security/back-office/login` with a cookie-keeping `HttpClient`, `GET security/back-office/authorize` (client `umbraco-back-office`, PKCE S256, redirect = host + `Umbraco:CMS:Security:AuthorizeCallbackPathName`), then `POST /umbraco/management/api/v1/security/back-office/token` with `grant_type=authorization_code`. The access token arrives in the `__Host-umbAccessToken` cookie; requests send it as a cookie plus a placeholder `Authorization: Bearer [redacted]` header, as the backoffice does. Nothing is faked: `CustomTestAuthSetup` is overridden to install no test auth handler.
+- **Back-office token endpoint:** `/umbraco/management/api/v1/security/back-office/token` (Task 16 `session.spec.ts`).
+- Package migration runner for `MigrationTests`: `PackageMigrationRunner.RunPackagePlansAsync(IEnumerable<string>)` (public class in `Umbraco.Infrastructure.Install`), with `IMigrationPlanExecutor` as the lower-level option.
+- Wiring notes (needed because the framework's own `[SetUpFixture]` and deps file live in its assembly): a global-namespace `[SetUpFixture]` that runs `GlobalSetupTeardown`, a project `appsettings.Tests.json` (SQLite), and a post-build copy of the test deps file to `Umbraco.Tests.Integration.deps.json` for `WebApplicationFactory`. NUnit is pinned to 3.14.0, the version `Umbraco.Cms.Tests` is built against.
+- SQL Server: the same framework reads `Tests:Database:DatabaseType=SqlServer` and `Tests:Database:SQLServerMasterConnectionString` from environment variables (`Tests__Database__…`), which `nightly.yml` sets.
 
 ## S1: `/filter/user` action-filter hide at runtime
 
@@ -27,8 +34,8 @@ Runtime (demo site, 44 seeded users, 3 hidden by a throwaway filter matching `Co
 
 ## S2: Does `EnableAsync` publish `UserSavedNotification`, deferred to an outer scope?
 
-**Gate:** 
-**Result / Decision:** 
+**Gate:** GO
+**Result / Decision:** `CoreContractTests.EnableAsync_publishes_UserSavedNotification` and `CoreContractTests.EnableAsync_inside_outer_scope_defers_UserSaved_until_outer_complete` pass (Gating) on 18.3.0. Task 10 uses `UserSavedNotification` (no `CoreEnableActionFilter`); Task 9 relies on the deferral (no `UnarchiveInProgress` marker).
 
 ## S3: Which endpoints each surface calls; `FilterAsync` with `HideDisabledUsersInBackOffice`
 
@@ -46,8 +53,15 @@ Runtime (demo site, 44 seeded users, 3 hidden by a throwaway filter matching `Co
 
 ## S4: Core user-service behaviour, authorisation, security stamp and audit calls
 
-**Gate:** 
-**Result / Decision:** 
+**Gate:** GO
+**Result / Decision:** All Gating tests pass: `CoreContractTests.AuthorizeAccessAsync_refuses_non_admin_on_admin`, `CoreContractTests.UpdateSecurityStampAsync_changes_stamp_without_HttpContext`. Tripwires pass: `DisableAsync_does_not_check_admin`, `EnableAsync_does_not_check_admin`, `FilterAsync_hides_admins_from_non_admin`. Recording tests pass as written.
+
+Notes for Task 7:
+- **Per-user status map** (`IUserService.DisableAsync`, one key per call): already disabled → `Success`; self → `CannotDisableSelf`; invited → `CannotDisableInvitedUser`; `SuperUserKey` performer → `Success` for editor, admin and user manager; non-admin performer on an admin → `Success` (core does not authorise, AU-01).
+- **Authorisation call:** `IUserPermissionService.AuthorizeAccessAsync(IUser performer, IEnumerable<Guid> userKeys)` → `UserAuthorizationStatus` (`Success`, or `UnauthorizedMissingAdminAccess`). Implementation at 18.3.0: an admin performer always gets `Success`; otherwise any admin target is refused ([UserPermissionService.cs](https://github.com/umbraco/Umbraco-CMS/blob/ee1861c1dfd925d8fdd476be2bbd48b7743ad737/src/Umbraco.Core/Services/UserPermissionService.cs)). It has no superuser rule, which `UserVisibility` adds.
+- **Stamp rotation route:** resolve `IBackOfficeUserManager` in a DI scope, `FindByIdAsync(userKey.ToString())` (the store accepts a key string), then `UpdateSecurityStampAsync` from `UserManager<BackOfficeIdentityUser>` (the registered implementation, `BackOfficeUserManager`, derives from it; the interface does not declare the method). Works with no `HttpContext`.
+- **Core audit call:** `IAuditService.AddAsync(AuditType.Custom, performerKey, target.Id, "User", "ArchivedUsers: <Action> (<Source>)")`, read back through `GetItemsByEntityAsync(target.Id, ...)` (`AuditService_write_is_readable_back`). `AddAsync` needs a real user key as performer; for system actions the package uses `SuperUserKey` and says so in the comment.
+- **Client credentials (T5):** `IBackOfficeUserClientCredentialsManager.SaveAsync(userKey, clientId, secret)` (scoped; prefixes the id with `umbraco-back-office-`); token request `POST /umbraco/management/api/v1/security/back-office/token` with `grant_type=client_credentials`, `client_id`, `client_secret` → 200 with `access_token` (`CoreContractApiTests.Api_user_obtains_client_credentials_token`). Core's `FindUserAsync(clientId)` returns null for a user whose `IsApproved` is false, which is what T5 relies on.
 
 ## S5: Package migration on SQLite and SQL Server
 
@@ -75,7 +89,7 @@ Pass (closed) when: The permission needed to author, and whether the author is a
 
 Pass (closed) when: The answer is recorded and the package's own rotation test passes either way.
 
-**Result / Decision:** 
+**Result / Decision:** Core's `DisableAsync` does **not** rotate the security stamp on 18.3.0 (`CoreContractTests.DisableAsync_rotates_security_stamp` observes the same stamp before and after). The package rotates it itself after every disable (AU-02, Task 7). U3 closed.
 
 ## U4: Does external-login auto-link re-approve a disabled user, or update names from IdP claims?
 
