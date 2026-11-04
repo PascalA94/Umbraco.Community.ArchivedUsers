@@ -10,12 +10,12 @@
     "generate:api": "openapi-ts"
   },
   "devDependencies": {
+    "@hey-api/openapi-ts": "0.99.0",
     "@umbraco-cms/backoffice": "^18.3.0",
     "happy-dom": "^21.0.4",
-    "typescript": "^5.9.0",
-    "vite": "^7.3.7",
-    "vitest": "^4.0.0",
-    "@hey-api/openapi-ts": "0.99.0"
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "vitest": "^5.1.0"
   },
   "engines": {
     "node": ">=24.13"
