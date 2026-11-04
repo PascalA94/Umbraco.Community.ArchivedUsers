@@ -1,17 +1,18 @@
 import { a as o } from "./archived-users.api-C7fXqz2n.js";
 import { A as r } from "./archive-status.context-token-DXqk9-Pa.js";
 import { s as n } from "./predicates-BAyNkNWg.js";
-import { A as c } from "./index-BzyUosXS.js";
-import { n as h, r as m } from "./refresh-user-CeSIfsvc.js";
-import { UmbEntityActionBase as u } from "@umbraco-cms/backoffice/entity-action";
-import { umbOpenModal as f } from "@umbraco-cms/backoffice/modal";
-import { UMB_USER_WORKSPACE_CONTEXT as A } from "@umbraco-cms/backoffice/user";
-class S extends u {
+import { A as c } from "./index-Do39Oh5O.js";
+import { n as h } from "./notify-DthNN_4Z.js";
+import { r as m } from "./refresh-user-DZSrA9g5.js";
+import { UmbEntityActionBase as f } from "@umbraco-cms/backoffice/entity-action";
+import { umbOpenModal as u } from "@umbraco-cms/backoffice/modal";
+import { UMB_USER_WORKSPACE_CONTEXT as p } from "@umbraco-cms/backoffice/user";
+class I extends f {
   async execute() {
     const t = this.args.unique;
     if (!t) throw new Error("No user to archive.");
-    const i = await (await this.getContext(r))?.config(), a = (await this.getContext(A).catch(() => {
-    }))?.getData(), e = await f(this, c, {
+    const i = await (await this.getContext(r))?.config(), a = (await this.getContext(p).catch(() => {
+    }))?.getData(), e = await u(this, c, {
       data: {
         mode: "archive",
         count: 1,
@@ -26,6 +27,6 @@ class S extends u {
   }
 }
 export {
-  S as ArchivedUsersArchiveEntityAction,
-  S as api
+  I as ArchivedUsersArchiveEntityAction,
+  I as api
 };

@@ -1,9 +1,12 @@
 import { ARCHIVED_USERS_ARCHIVE_CONFIRM_MODAL_ALIAS } from './modal/archive-confirm.modal-token.js';
-import { UMB_USER_ENTITY_TYPE } from '@umbraco-cms/backoffice/user';
+import { UMB_USER_COLLECTION_ALIAS, UMB_USER_ENTITY_TYPE } from '@umbraco-cms/backoffice/user';
+import { UMB_COLLECTION_ALIAS_CONDITION } from '@umbraco-cms/backoffice/collection';
+import { UMB_IN_MODAL_CONDITION_ALIAS } from '@umbraco-cms/backoffice/modal';
 
 // Aliases are permanent once released (design 7.3).
 export const CAN_ARCHIVE_CONDITION = 'ArchivedUsers.Condition.User.CanArchive';
 export const IS_ARCHIVED_CONDITION = 'ArchivedUsers.Condition.User.IsArchived';
+export const ARCHIVED_USER_COLLECTION_ALIAS = 'ArchivedUsers.Collection.ArchivedUser';
 
 export const manifests: Array<UmbExtensionManifest> = [
   {
@@ -51,6 +54,42 @@ export const manifests: Array<UmbExtensionManifest> = [
     api: () => import('./entity-actions/unarchive.action.js'),
     meta: { icon: 'icon-undo', label: '#archivedUsers_unarchive' },
     conditions: [{ alias: IS_ARCHIVED_CONDITION }],
+  },
+  {
+    type: 'entityBulkAction',
+    kind: 'default',
+    alias: 'ArchivedUsers.EntityBulkAction.User.Archive',
+    name: 'Archive Users',
+    weight: 50,
+    forEntityTypes: [UMB_USER_ENTITY_TYPE],
+    api: () => import('./bulk-actions/archive.bulk-action.js'),
+    meta: { icon: 'icon-box', label: '#archivedUsers_archive' },
+    conditions: [{ alias: UMB_COLLECTION_ALIAS_CONDITION, match: UMB_USER_COLLECTION_ALIAS }],
+  },
+  {
+    type: 'entityBulkAction',
+    kind: 'default',
+    alias: 'ArchivedUsers.EntityBulkAction.User.Unarchive',
+    name: 'Unarchive Users',
+    weight: 50,
+    forEntityTypes: [UMB_USER_ENTITY_TYPE],
+    api: () => import('./bulk-actions/unarchive.bulk-action.js'),
+    meta: { icon: 'icon-undo', label: '#archivedUsers_unarchive' },
+    conditions: [{ alias: UMB_COLLECTION_ALIAS_CONDITION, match: ARCHIVED_USER_COLLECTION_ALIAS }],
+  },
+  {
+    type: 'collectionAction',
+    kind: 'button',
+    alias: 'ArchivedUsers.CollectionAction.User.ArchiveDisabled',
+    name: 'Archive Disabled Users',
+    weight: 50,
+    api: () => import('./collection-action/archive-disabled.action.js'),
+    meta: { label: '#archivedUsers_archiveDisabled' },
+    // Same conditions as core's Create action: the Users collection, never inside a picker modal (F3).
+    conditions: [
+      { alias: UMB_COLLECTION_ALIAS_CONDITION, match: UMB_USER_COLLECTION_ALIAS },
+      { alias: UMB_IN_MODAL_CONDITION_ALIAS, match: false },
+    ],
   },
   {
     type: 'localization',
