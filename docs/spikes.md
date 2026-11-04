@@ -66,7 +66,7 @@ Notes for Task 7:
 ## S5: Package migration on SQLite and SQL Server
 
 **Gate:** pending (Task 5 Step 5)
-**Result / Decision:** 
+**Result / Decision:** pending until Task 5 Step 5 (`MigrationTests.Plan_creates_both_tables` on SQLite and SQL Server).
 
 ## S6: Frontend wiring and the OpenAPI client
 
@@ -90,13 +90,22 @@ Notes for Task 7:
 
 Pass (closed) when: The mode and the access-token lifetime are recorded with the source line, and T4's observed result matches.
 
-**Result / Decision:** 
+**Result / Decision:** Access tokens are **reference tokens validated against the token store**, not self-contained, on both floors ([UmbracoBuilderAuthExtensions.cs at 18.3.0](https://github.com/umbraco/Umbraco-CMS/blob/ee1861c1dfd925d8fdd476be2bbd48b7743ad737/src/Umbraco.Cms.Api.Common/DependencyInjection/UmbracoBuilderAuthExtensions.cs)). Lifetime: access token = `Umbraco:CMS:Global:TimeOut` / 4 (**5 minutes** with the default `TimeOut` of 20 minutes); refresh token = `TimeOut`.
+
+- Server: `options.UseReferenceAccessTokens().UseReferenceRefreshTokens()` and `options.SetAccessTokenLifetime(new TimeSpan(timeOut.Ticks / 4)); options.SetRefreshTokenLifetime(timeOut);` ([UmbracoBuilderAuthExtensions.cs L85-L98 at 18.3.0](https://github.com/umbraco/Umbraco-CMS/blob/ee1861c1dfd925d8fdd476be2bbd48b7743ad737/src/Umbraco.Cms.Api.Common/DependencyInjection/UmbracoBuilderAuthExtensions.cs#L85-L98); identical lines [at 17.8.0](https://github.com/umbraco/Umbraco-CMS/blob/83984e2515634f5812d9af99e0149cd7d94622c8/src/Umbraco.Cms.Api.Common/DependencyInjection/UmbracoBuilderAuthExtensions.cs#L85-L98)).
+- Validation: `options.UseLocalServer(); ... options.EnableTokenEntryValidation();` ([L157-L167](https://github.com/umbraco/Umbraco-CMS/blob/ee1861c1dfd925d8fdd476be2bbd48b7743ad737/src/Umbraco.Cms.Api.Common/DependencyInjection/UmbracoBuilderAuthExtensions.cs#L157-L167)), so every API call checks the token entry in the database. A revoked token stops working on the next request.
+- Revocation on disable: `RevokeUserAuthenticationTokensNotificationHandler` handles `UserSavedNotification` and revokes tokens when `user.IsLockedOut || user.IsApproved is false` ([RevokeUserAuthenticationTokensNotificationHandler.cs at 18.3.0](https://github.com/umbraco/Umbraco-CMS/blob/ee1861c1dfd925d8fdd476be2bbd48b7743ad737/src/Umbraco.Cms.Api.Management/Handlers/RevokeUserAuthenticationTokensNotificationHandler.cs)).
+- Consequence: no README residual for in-flight tokens is needed if T4 (Task 16 `session.spec.ts` (d)) confirms an archived user's last access token is refused. If T4 shows otherwise, the README states the 5-minute window.
 
 ## U2: Automate authoring rights, and whether the action context exposes the authoring user
 
 Pass (closed) when: The permission needed to author, and whether the author is available to an action, are recorded with sources.
 
-**Result / Decision:** 
+**Result / Decision:** Authoring needs **no section beyond Automate**: access to the Automate section (`[Authorize(Policy = AutomateAuthorizationPolicies.SectionAccessAutomate)]` on `UmbracoAutomateManagementControllerBase`) plus membership of a user group assigned to the automation's workspace (`AutomateAuthorizationPolicies.WorkspaceAccess`; admins bypass it). Same on the v17 and v18 lines. Sources: [umbraco/Umbraco.Automate, `src/Umbraco.Automate.Web/Api/Management/Common/Controllers/UmbracoAutomateManagementControllerBase.cs`](https://github.com/umbraco/Umbraco.Automate) and the [Workspaces docs](https://docs.umbraco.com/umbraco-automate/17.latest/concepts/workspaces) ("can view, edit, and run the automations in the workspace").
+
+The action execution context does **not** expose the authoring user. `ActionContext.ExecutionContext` is an `AutomationExecutionContext` with `ServiceAccountKey` (the workspace's API user the run executes as), `InitiatorType` (`user`, `scheduled`, `webhook`, `ai-agent`), an optional `InitiatorId` string, and `WorkspaceId`, `AutomationId`, `AutomationName`, `RunId` (`src/Umbraco.Automate.Core/Execution/AutomationExecutionContext.cs`).
+
+**AU-05 controls (design 7.5) are mandatory in the v0.2 plan; without them AU-05 is Critical.** Spike S7 re-checks both answers on the Automate versions v0.2 targets (not verified here: what `InitiatorId` holds for each initiator type, and a per-release diff of the context type).
 
 ## U3: Does `DisableAsync` rotate the security stamp?
 
@@ -108,7 +117,8 @@ Pass (closed) when: The answer is recorded and the package's own rotation test p
 
 Pass (closed) when: Both answers recorded with the source line.
 
-**Result / Decision:** 
+**Result / Decision:** (a) **No.** Core's auto-link never sets `IsApproved`: for an existing user it calls the site's `OnAutoLinking` callback, then `OnExternalLogin`, then `AddLoginAsync` and signs in ([BackOfficeSignInManager.cs L192-L240 at 18.3.0](https://github.com/umbraco/Umbraco-CMS/blob/ee1861c1dfd925d8fdd476be2bbd48b7743ad737/src/Umbraco.Cms.Api.Management/Security/BackOfficeSignInManager.cs#L192-L240)). A site callback **could** set `IsApproved = true`; the save then goes through the user store and `IUserService`, so `UserSavedNotification` fires and F7 removes the archive record with a `CoreEnable` row (S2 shows `UserSaved` fires on enable). No conditional contract test is added to Task 10, because core itself never re-approves.
+(b) **Names can come from the IdP.** A new auto-linked user is created with `loginInfo.Principal.Identity.Name` ([L243-L252](https://github.com/umbraco/Umbraco-CMS/blob/ee1861c1dfd925d8fdd476be2bbd48b7743ad737/src/Umbraco.Cms.Api.Management/Security/BackOfficeSignInManager.cs#L243-L252)), and `OnAutoLinking` callbacks commonly copy claims onto existing users. User names are therefore attacker-influenced text, which confirms AU-04 (render as text only). No design change.
 
 ## U5: Which non-Users-section surfaces call `/filter/user`?
 
