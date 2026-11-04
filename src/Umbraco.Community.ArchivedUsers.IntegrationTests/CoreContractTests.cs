@@ -213,7 +213,7 @@ public class CoreContractTests : UmbracoIntegrationTest
     /// <summary>U3. Records whether core's disable rotates the stamp; the package rotates either way (AU-02).</summary>
     [Test]
     [Category("Recording")]
-    public async Task DisableAsync_rotates_security_stamp()
+    public async Task DisableAsync_does_not_rotate_security_stamp()
     {
         IUser editor = await Users.CreateEditorAsync();
         string? before = (await UserService.GetAsync(editor.Key))!.SecurityStamp;

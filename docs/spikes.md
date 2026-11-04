@@ -28,7 +28,8 @@ Core facts (18.3.0, commit `ee1861c`):
 
 Runtime (demo site, 44 seeded users, 3 hidden by a throwaway filter matching `ControllerTypeInfo == typeof(FilterUserFilterController)`, `FilterAsync(..., 0, int.MaxValue, ...)`, in-memory paging):
 - 18.3.0: API pages `skip=0,10,20,30,40&take=10` gave `total=41` on every page, 41 unique users, none of the 3 hidden. `filter=former` → 6 (2 hidden dropped). `userStates=Disabled` → 9. The backoffice Users collection (`filter/user?orderBy=Name&orderDirection=Ascending&skip=0&take=50`) rendered our payload with the hidden user missing and **no console errors**; search in the collection, the user group member list and the "Choose users" picker in a user group all called `/filter/user` and hid the users.
-- 17.8.0 (scratch site outside the repo, same seed): identical results; the filter matched action `Filter`. Recorded for Task 19.
+- 17.8.0 (scratch site outside the repo, same seed): identical results; the filter matched action `Filter`. Recorded for Task 19. This 17.8 run is manual and not reproducible from the tree; Task 19's `FilterUserTests` on the `v17` line are the repeatable proof.
+- Still to prove at runtime: the Content User Picker property editor (Task 16 `pickers.spec.ts`, a hard gate for the README D1 table) and S1 on 18.4+ when it ships (the CI latest leg).
 - Floor and latest are the same versions on 2026-11-03 (18.3.0 and 17.8.0 are the newest releases on NuGet), so the "latest" run is the floor run.
 - Core assemblies the spike needed: `FilterUserFilterController`, `IUserPresentationFactory` (`Umbraco.Cms.Api.Management`), `PagedViewModel<T>` (`Umbraco.Cms.Api.Common`, transitive through `Api.Management`). The Task 1 references (`Umbraco.Cms.Web.Common`, `Umbraco.Cms.Api.Management`) cover them (P12e).
 
@@ -95,6 +96,7 @@ Pass (closed) when: The mode and the access-token lifetime are recorded with the
 - Server: `options.UseReferenceAccessTokens().UseReferenceRefreshTokens()` and `options.SetAccessTokenLifetime(new TimeSpan(timeOut.Ticks / 4)); options.SetRefreshTokenLifetime(timeOut);` ([UmbracoBuilderAuthExtensions.cs L85-L98 at 18.3.0](https://github.com/umbraco/Umbraco-CMS/blob/ee1861c1dfd925d8fdd476be2bbd48b7743ad737/src/Umbraco.Cms.Api.Common/DependencyInjection/UmbracoBuilderAuthExtensions.cs#L85-L98); identical lines [at 17.8.0](https://github.com/umbraco/Umbraco-CMS/blob/83984e2515634f5812d9af99e0149cd7d94622c8/src/Umbraco.Cms.Api.Common/DependencyInjection/UmbracoBuilderAuthExtensions.cs#L85-L98)).
 - Validation: `options.UseLocalServer(); ... options.EnableTokenEntryValidation();` ([L157-L167](https://github.com/umbraco/Umbraco-CMS/blob/ee1861c1dfd925d8fdd476be2bbd48b7743ad737/src/Umbraco.Cms.Api.Common/DependencyInjection/UmbracoBuilderAuthExtensions.cs#L157-L167)), so every API call checks the token entry in the database. A revoked token stops working on the next request.
 - Revocation on disable: `RevokeUserAuthenticationTokensNotificationHandler` handles `UserSavedNotification` and revokes tokens when `user.IsLockedOut || user.IsApproved is false` ([RevokeUserAuthenticationTokensNotificationHandler.cs at 18.3.0](https://github.com/umbraco/Umbraco-CMS/blob/ee1861c1dfd925d8fdd476be2bbd48b7743ad737/src/Umbraco.Cms.Api.Management/Handlers/RevokeUserAuthenticationTokensNotificationHandler.cs)).
+- **T4 runtime confirmation is pending (Task 16 `session.spec.ts` (d)).** Until it passes, U1 is closed on source reading only, and the Task 17 README wording waits on it.
 - Consequence: no README residual for in-flight tokens is needed if T4 (Task 16 `session.spec.ts` (d)) confirms an archived user's last access token is refused. If T4 shows otherwise, the README states the 5-minute window.
 
 ## U2: Automate authoring rights, and whether the action context exposes the authoring user
@@ -111,7 +113,7 @@ The action execution context does **not** expose the authoring user. `ActionCont
 
 Pass (closed) when: The answer is recorded and the package's own rotation test passes either way.
 
-**Result / Decision:** Core's `DisableAsync` does **not** rotate the security stamp on 18.3.0 (`CoreContractTests.DisableAsync_rotates_security_stamp` observes the same stamp before and after). The package rotates it itself after every disable (AU-02, Task 7). U3 closed.
+**Result / Decision:** Core's `DisableAsync` does **not** rotate the security stamp on 18.3.0 (`CoreContractTests.DisableAsync_does_not_rotate_security_stamp` observes the same stamp before and after). The package rotates it itself after every disable (AU-02, Task 7). U3 closed.
 
 ## U4: Does external-login auto-link re-approve a disabled user, or update names from IdP claims?
 

@@ -53,11 +53,18 @@ jobs:
 
       # The built client in wwwroot is committed; fail if it differs from a fresh build (P13c).
       - name: Check committed wwwroot matches the build
-        run: git diff --exit-code -- src/Umbraco.Community.ArchivedUsers/wwwroot
+        run: |
+          git diff --exit-code -- src/Umbraco.Community.ArchivedUsers/wwwroot
+          # git diff ignores untracked files, so a new hashed chunk from a drifted build needs its own check.
+          test -z "$(git status --porcelain -- src/Umbraco.Community.ArchivedUsers/wwwroot)"
 
       # Proves the Vite external held: core client code is imported at runtime, never bundled (AU-15).
+      # Only meaningful once the client source imports core; an empty-manifest bundle has nothing to externalise.
       - name: Check @umbraco-cms/backoffice stayed external
-        run: grep -rqE --include='*.js' "[\"']@umbraco-cms/backoffice/" src/Umbraco.Community.ArchivedUsers/wwwroot/
+        run: |
+          if grep -rqE "from [\"']@umbraco-cms/backoffice/" src/Umbraco.Community.ArchivedUsers/Client/src; then
+            grep -rqE --include='*.js' "[\"']@umbraco-cms/backoffice/" src/Umbraco.Community.ArchivedUsers/wwwroot/
+          fi
 
       - name: Restore (locked)
         if: matrix.leg == 'floor'
