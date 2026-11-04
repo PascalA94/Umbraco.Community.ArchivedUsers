@@ -78,7 +78,8 @@ test.describe('UC1 offboard a leaver', () => {
       email: `${runId}.invited@example.test`, userName: `${runId}.invited@example.test`, name: `Invited ${runId}`,
       userGroupIds: [{ id: EDITOR_GROUP }], message: 'e2e',
     });
-    test.skip(invite.status !== 201, `Core could not send an invitation on this site (status ${invite.status}); covered by the API test Archive_invited_user_returns_Invited_and_writes_nothing.`);
+    // The demo writes invitation emails to a pickup folder (appsettings.json Smtp), so core can always invite here.
+    expect(invite.status, `invite the user: ${JSON.stringify(invite.json)}`).toBe(201);
     const invitedId = invite.headers['umb-generated-resource'] ?? invite.headers['location']?.split('/').pop();
     expect(await openUserActions(page, invitedId!)).not.toContain('Archive');
     guard.assertNoErrors();

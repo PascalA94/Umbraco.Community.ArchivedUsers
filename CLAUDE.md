@@ -68,5 +68,6 @@ bash build/check-vulnerable.sh
 
 1. Bump the four version files together and rebuild the client (`wwwroot/` is committed; CI fails on drift).
 2. `bash build/check-vulnerable.sh` must exit 0.
+   `bash build/check-release-version.sh v18.x.y` must exit 0 (`publish.yml` runs it, and checks the tag is on `main` or `v17`).
 3. Merge to `main` (or `v17`), tag `v18.x.y` (or `v17.x.y`) on the merge commit and push the tag. `publish.yml` packs and pushes with NuGet Trusted Publishing.
 4. `gh release create <tag> --prerelease --generate-notes` for prereleases.

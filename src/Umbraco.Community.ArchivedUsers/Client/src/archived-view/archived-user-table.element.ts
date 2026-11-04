@@ -1,4 +1,4 @@
-import type { ArchivedUserCollectionItem } from './map-item.js';
+import { archivedByLabel, type ArchivedUserCollectionItem } from './map-item.js';
 import type { ArchivedUserCollectionFilter } from './archived-user-collection.repository.js';
 import { debounce } from './debounce.js';
 import './archived-users-name-column-layout.element.js';
@@ -50,6 +50,10 @@ export class ArchivedUsersArchivedUserTableElement extends UmbLitElement {
   }
 
   #rows(): UmbTableItem[] {
+    const archivedByTexts = {
+      system: this.localize.term('archivedUsers_system'),
+      removedUser: this.localize.term('archivedUsers_removedUser'),
+    };
     return this._items.map((item) => ({
       id: item.unique,
       icon: 'icon-user',
@@ -60,9 +64,7 @@ export class ArchivedUsersArchivedUserTableElement extends UmbLitElement {
         { columnAlias: 'archived', value: this.#date(item.archivedUtc) },
         {
           columnAlias: 'archivedBy',
-          value: item.archivedBySystem
-            ? this.localize.term('archivedUsers_system')
-            : (item.archivedByName ?? this.localize.term('archivedUsers_removedUser')),
+          value: archivedByLabel(item, archivedByTexts),
         },
         { columnAlias: 'reason', value: item.reason ?? '' },
         { columnAlias: 'lastLogin', value: item.lastLoginDate ? this.#date(item.lastLoginDate) : '' },

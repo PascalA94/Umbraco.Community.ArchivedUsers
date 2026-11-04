@@ -47,6 +47,26 @@ public class CleanUpTests : ArchivedUsersIntegrationTestBase
         Assert.That(await repository.GetAsync(disabledAdmin.Key), Is.Null);
         Assert.That(await repository.GetAsync(disabledEditor.Key), Is.Not.Null, "clean-up did run (review BS-6)");
     }
+
+    /// <summary>
+    /// Review C-12, BS-1: leavers are often both disabled and locked out. Pins that core's real Disabled-state query
+    /// still returns them, so "Archive disabled users" counts and archives them.
+    /// </summary>
+    [Test]
+    public async Task Clean_up_counts_and_archives_a_disabled_locked_out_user()
+    {
+        IUser admin = await Users.CreateAdminAsync();
+        IUser locked = await Users.DisableAndLockOutAsync(await Users.CreateEditorAsync("Locked leaver"));
+
+        CleanUpPreview preview = await Service.PreviewCleanUpAsync(admin.Key);
+        Assert.That(preview.Sample.Select(s => s.Id), Does.Contain(locked.Key));
+        Assert.That(preview.Count, Is.EqualTo(1));
+
+        await Service.ArchiveAllDisabledAsync(admin.Key, null);
+
+        using ICoreScope scope = GetRequiredService<ICoreScopeProvider>().CreateCoreScope(autoComplete: true);
+        Assert.That(await GetRequiredService<IArchivedUserRepository>().GetAsync(locked.Key), Is.Not.Null);
+    }
 }
 
 /// <summary>F3 with core's HideDisabledUsersInBackOffice on: the count still comes from the server (docs/spikes.md S3).</summary>

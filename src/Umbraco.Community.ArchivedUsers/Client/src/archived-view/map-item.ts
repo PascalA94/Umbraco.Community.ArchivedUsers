@@ -30,3 +30,18 @@ export function mapItem(m: ArchivedUserResponseModel): ArchivedUserCollectionIte
     stale: m.stale,
   };
 }
+
+/** Localised texts for the "Archived by" cell, resolved by the caller with literal keys (check-xss.sh). */
+export interface ArchivedByTexts {
+  system: string;
+  removedUser: string;
+}
+
+/** The "Archived by" cell text. Never blank (Review Focus 5): a deleted archiver reads "Removed user". */
+export function archivedByLabel(
+  item: Pick<ArchivedUserCollectionItem, 'archivedBySystem' | 'archivedByName'>,
+  texts: ArchivedByTexts,
+): string {
+  if (item.archivedBySystem) return texts.system;
+  return item.archivedByName || texts.removedUser;
+}

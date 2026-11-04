@@ -8,7 +8,7 @@
 | Licence | MIT |
 | Status | Design, revised after the security review. Nothing built |
 | Written | 2026-10-29. Revised 2026-10-30 (see "Security review changes" at the end) |
-| Sources | [01-archived-users.md](../01-archived-users/scope.md) (its Decisions section wins), [README.md](../README.md), `~/.claude/references/umbraco-pitfalls.md`, [security-review.md](security-review.md) (findings AU-01 to AU-16, facts V1 to V18) |
+| Sources | the private scope notes (their Decisions section wins), the private portfolio README, an Umbraco pitfalls reference, the private security review `security-review.md` (findings AU-01 to AU-16, facts V1 to V18) |
 
 How to read the tags:
 - **[verified]**: read in Umbraco-CMS source or on NuGet on 2026-10-29 (`main` at `f7f06d9`, plus `release/17.9.0` and `release/18.4.0`). Those two are **unreleased** branches (security review V18). The latest released tags on 2026-10-30 are `release-17.8.0` and `release-18.3.0`, which are now the floors.

@@ -87,7 +87,7 @@ The site owner is the data controller. The package stores:
 
 - **`archivedUsersUser`:** user key, archive time, archiving user's key, source, reason, whether the user was already disabled.
 - **`archivedUsersAudit`:** one row per archive or unarchive: user key, action, performing user's key, time, source, reason, a **snapshot of the user's name** (never the email), and whether the user was re-enabled.
-- It also writes one entry per archive or unarchive to Umbraco's own audit log (action and source only).
+- It also writes one entry to Umbraco's own audit log (action and source only) for each archive or unarchive made through the package. Records removed automatically (a user enabled through Umbraco itself, or tidied up at start-up) get a row in `archivedUsersAudit` only.
 
 Lawful basis: legitimate interest in keeping evidence of who had access and who removed it. Audit rows have no foreign key to Umbraco's user table, so they **outlive deleted users by design**. The reason field is free text: **don't put sensitive personal details in it; use a ticket reference.**
 
@@ -103,6 +103,8 @@ Remove the package. Its tables stay in the database; drop `archivedUsersUser` an
 |---|---|---|
 | 18.x | 18.3.0 to 18.x (`[18.3.0, 19.0.0)`) | `main` |
 | 17.x | 17.8.0 to 17.x (`[17.8.0, 18.0.0)`) | `v17` |
+
+On Umbraco 17, install a 17.x version: `dotnet add package Umbraco.Community.ArchivedUsers --version 17.0.0-alpha.1`. A bare `--prerelease` install picks the newest 18.x, which needs Umbraco 18.
 
 17.8.0 and 18.3.0 are the first releases where Umbraco refuses disabled users at sign-in, and they include the 27 October 2026 security fixes.
 

@@ -17,6 +17,40 @@ jobs:
 
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      # A tag publishes only from its line's release branch: v18.* from main, v17.* from v17 (review C-13).
+      - name: Tag is on its release branch
+        run: |
+          case "$GITHUB_REF_NAME" in
+            v18.*) branch=main ;;
+            v17.*) branch=v17 ;;
+            *) echo "Unexpected tag $GITHUB_REF_NAME" >&2; exit 1 ;;
+          esac
+          git merge-base --is-ancestor "$GITHUB_SHA" "origin/$branch"
+
+      - name: Version files match the tag
+        run: bash build/check-release-version.sh "$GITHUB_REF_NAME"
+
+      - name: Setup Node
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version-file: src/Umbraco.Community.ArchivedUsers/Client/.nvmrc
+          cache: npm
+          cache-dependency-path: src/Umbraco.Community.ArchivedUsers/Client/package-lock.json
+
+      # The same client gates as build.yml, so a tag never publishes a client that CI did not check.
+      - name: Client build, XSS guard, tests and wwwroot drift
+        run: |
+          cd src/Umbraco.Community.ArchivedUsers/Client
+          npm ci --ignore-scripts
+          npm run build
+          npm test
+          cd ../../..
+          bash build/check-xss.sh
+          git diff --exit-code -- src/Umbraco.Community.ArchivedUsers/wwwroot
+          test -z "$(git status --porcelain -- src/Umbraco.Community.ArchivedUsers/wwwroot)"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0

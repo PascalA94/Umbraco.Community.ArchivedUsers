@@ -85,6 +85,8 @@ jobs:
       Umbraco__CMS__Unattended__UnattendedUserPassword: 'Ci-Admin-Only-Pw-1!'
       ArchivedUsersDemo__UserPassword: 'Ci-Demo-Only-Pw-1!'
       URL: http://localhost:28331
+      # Invitation links need a fixed application URL on Umbraco 18.3+; the demo's default is the local https port.
+      Umbraco__CMS__WebRouting__UmbracoApplicationUrl: http://localhost:28331
       ADMIN_EMAIL: admin@example.test
       ADMIN_PASSWORD: 'Ci-Admin-Only-Pw-1!'
       MANAGER_EMAIL: morgan@example.test

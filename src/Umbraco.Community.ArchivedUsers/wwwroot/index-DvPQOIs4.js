@@ -40,13 +40,13 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     type: "repository",
     alias: r,
     name: "Archived Users Collection Repository",
-    api: () => import("./archived-user-collection.repository-DdqKNrz-.js")
+    api: () => import("./archived-user-collection.repository-DLpOCeyE.js")
   },
   {
     type: "collectionView",
     alias: "ArchivedUsers.CollectionView.ArchivedUser.Table",
     name: "Archived Users Table Collection View",
-    element: () => import("./archived-user-table.element-BFOsn4v4.js"),
+    element: () => import("./archived-user-table.element-DSqcAqR3.js"),
     meta: { label: "Table", icon: "icon-table", pathName: "table" },
     conditions: [{ alias: i, match: s }]
   }
@@ -83,7 +83,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Archive User",
     weight: 450,
     forEntityTypes: [e],
-    api: () => import("./archive.action-sfjtpKEb.js"),
+    api: () => import("./archive.action-BxpZeqe1.js"),
     meta: { icon: "icon-box", label: "#archivedUsers_archive" },
     conditions: [{ alias: n }]
   },
@@ -94,7 +94,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Unarchive User",
     weight: 449,
     forEntityTypes: [e],
-    api: () => import("./unarchive.action-CtO4ZvEG.js"),
+    api: () => import("./unarchive.action-CUE3wehP.js"),
     meta: { icon: "icon-undo", label: "#archivedUsers_unarchive" },
     conditions: [{ alias: c }]
   },
@@ -105,7 +105,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Archive Users",
     weight: 50,
     forEntityTypes: [e],
-    api: () => import("./archive.bulk-action-comQAG2e.js"),
+    api: () => import("./archive.bulk-action-Di765B7T.js"),
     meta: { icon: "icon-box", label: "#archivedUsers_archive" },
     conditions: [{ alias: i, match: t }]
   },
@@ -116,7 +116,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Unarchive Users",
     weight: 50,
     forEntityTypes: [e],
-    api: () => import("./unarchive.bulk-action-D3DH2lvN.js"),
+    api: () => import("./unarchive.bulk-action-39F61mYC.js"),
     meta: { icon: "icon-undo", label: "#archivedUsers_unarchive" },
     conditions: [{ alias: i, match: s }]
   },
@@ -126,7 +126,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     alias: "ArchivedUsers.CollectionAction.User.ArchiveDisabled",
     name: "Archive Disabled Users",
     weight: 50,
-    api: () => import("./archive-disabled.action-BnosOt-y.js"),
+    api: () => import("./archive-disabled.action-CfQNfamc.js"),
     meta: { label: "#archivedUsers_archiveDisabled" },
     // Same conditions as core's Create action: the Users collection, never inside a picker modal (F3).
     conditions: [

@@ -6,7 +6,7 @@
   "scripts": {
     "build": "tsc --noEmit && vite build",
     "dev": "vite build --watch",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run",
     "generate:api": "openapi-ts"
   },
   "devDependencies": {

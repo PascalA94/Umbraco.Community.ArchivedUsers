@@ -14,7 +14,9 @@ export default defineConfig({
   fullyParallel: false,
   timeout: 90_000,
   expect: { timeout: 15_000 },
-  retries: process.env.CI ? 1 : 0,
+  // No retries: a flaky security spec (session, xss) must fail, not pass on a second try.
+  retries: 0,
+  forbidOnly: !!process.env.CI,
   reporter: process.env.CI ? [['list'], ['html', { open: 'never' }]] : 'list',
   use: {
     baseURL: process.env.URL ?? 'https://localhost:44331',
