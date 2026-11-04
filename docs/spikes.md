@@ -70,8 +70,21 @@ Notes for Task 7:
 
 ## S6: Frontend wiring and the OpenAPI client
 
-**Gate:** 
-**Result / Decision:** 
+**Gate:** GO
+**Result / Decision:** Every item works as the spec says or has a named replacement (below). Checked at runtime on the 18.3.0 demo with throwaway manifests (reverted), no console errors, and against the `@umbraco-cms/backoffice@18.3.0` sources ([user package at release-18.3.0](https://github.com/umbraco/Umbraco-CMS/tree/ee1861c1dfd925d8fdd476be2bbd48b7743ad737/src/Umbraco.Web.UI.Client/src/packages/user/user)).
+
+| Item | Result |
+|---|---|
+| `entityAction` (kind `default`) for `user` | Works as spec: shows in the user editor's actions menu and receives the user's `unique`. |
+| `entityBulkAction` on `Umb.Collection.User` (`UMB_COLLECTION_ALIAS_CONDITION`) | Works as spec: shows in core's selection bar and receives `selection`. |
+| `collectionAction` kind `button` with an `api` extending `UmbCollectionActionBase`, plus `UMB_IN_MODAL_CONDITION_ALIAS` `match: false` | Works as spec: shows next to Create; absent in the user group "Choose" users picker modal (count 0). Same conditions as core's `Umb.CollectionAction.User.Create`. |
+| `menuItem` in `Umb.Menu.UserManagement`, weight 190, `entityType` + `workspace` kind `default` | Works as spec: sits between Users (200) and User Groups; opens `/section/user-management/workspace/<entityType>`. `UMB_USER_MANAGEMENT_MENU_ALIAS` is **not** exported from a public entry point, so the manifest uses the literal `'Umb.Menu.UserManagement'`. |
+| `collectionView` kind `table` | **Replacement:** the kind exists (`Umb.Kind.CollectionView.Table`, `meta.columns: [{ field, label, valueType }]`) but has no sortable headers and no custom cell elements. The Archived view needs sortable name and archived columns and the stale tag beside the name, so it is a custom `collectionView` element built on `umb-table` (`archived-user-table.element.ts`), with the `archived-user-name-cell` element. |
+| Refresh after an action | Core's Disable updates `UMB_USER_DETAIL_STORE_CONTEXT.updateItem(id, { state })` (the editor observes the store) and, for bulk, dispatches `UmbRequestReloadChildrenOfEntityEvent({ entityType, unique })` from `UMB_ENTITY_CONTEXT` through `UMB_ACTION_EVENT_CONTEXT`. The package does the same: store update for the editor, reload event for collections. Both tokens are exported (`@umbraco-cms/backoffice/user`, `/action`, `/entity`, `/entity-action`). |
+| How `peek` renders `data.message` (AU-04) | As a **Lit text binding** (`notification-layout-default.element.ts`: `return this.data.message`). Only `data.htmlMessage` goes through `unsafeHTML(sanitizeHTML(...))`. The package uses `message` only and never `htmlMessage`. Core's own Disable action passes the user name through `localize.term` into `umbConfirmModal`'s headline, which is the pattern AU-04 bans. |
+| Condition re-evaluation | `UmbConditionBase` calls the extension manager's `onChange` whenever `permitted` is set to a new value (`core/extension-registry/conditions/condition-base.controller.js`), so a condition that observes the archive-status context re-evaluates after an action. |
+| Admin group and superuser uniques | **Replacement:** not exposed by the client (`UMB_CURRENT_USER_CONTEXT.isAdmin` exists for the current user only). `GET archived-users/config` also returns `adminGroupId` and `superUserId` (`Constants.Security.AdminGroupKey`, `Constants.Security.SuperUserKey`). |
+| OpenAPI (Step 5) | Works as spec. Register with `builder.AddBackOfficeOpenApiDocument("archived-users", d => d.WithTitle("Archived Users").WithBackOfficeAuthentication().WithJsonOptions(Constants.JsonOptionsNames.BackOffice))` (`Umbraco.Cms.Api.Common.OpenApi`) and put `[MapToApi("archived-users")]` on the controller base (it replaces core's `[MapToApi("management")]`; `AllowMultiple = false`). Served at **`/umbraco/openapi/archived-users.json`**; absent from `management.json`. Operation ids come from Umbraco's `UmbracoOperationIdTransformer` (method + route, e.g. `GetSpikeArchivedUsersConfig`). `@hey-api/openapi-ts` 0.99.0 (already in the tree through `@umbraco-cms/backoffice`) generates `sdk.gen.ts` with `security: [{ scheme: 'bearer', type: 'http' }]`; calls pass `client: umbHttpClient` from `@umbraco-cms/backoffice/http-client` and are wrapped in `tryExecute` from `@umbraco-cms/backoffice/resources`. No fallback needed. |
 
 ## U1: Access-token validation mode and lifetime
 
