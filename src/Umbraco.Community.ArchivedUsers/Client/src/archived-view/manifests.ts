@@ -13,7 +13,8 @@ export const manifests: Array<UmbExtensionManifest> = [
     alias: 'ArchivedUsers.MenuItem.ArchivedUsers',
     name: 'Archived Users Menu Item',
     // Just below core's Users (200), so it sits under Users. The menu constant is not publicly exported (S6).
-    weight: 190,
+    // Below core's Users (200) and User Groups (100): the archive sits last in the Users section menu.
+    weight: 90,
     meta: { label: '#archivedUsers_archivedUsers', icon: 'icon-box', entityType: ARCHIVED_USERS_ROOT_ENTITY_TYPE, menus: ['Umb.Menu.UserManagement'] },
   },
   {

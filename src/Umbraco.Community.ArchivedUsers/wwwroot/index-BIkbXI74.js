@@ -11,7 +11,8 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     alias: "ArchivedUsers.MenuItem.ArchivedUsers",
     name: "Archived Users Menu Item",
     // Just below core's Users (200), so it sits under Users. The menu constant is not publicly exported (S6).
-    weight: 190,
+    // Below core's Users (200) and User Groups (100): the archive sits last in the Users section menu.
+    weight: 90,
     meta: { label: "#archivedUsers_archivedUsers", icon: "icon-box", entityType: a, menus: ["Umb.Menu.UserManagement"] }
   },
   {
@@ -83,7 +84,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Archive User",
     weight: 450,
     forEntityTypes: [e],
-    api: () => import("./archive.action-BxpZeqe1.js"),
+    api: () => import("./archive.action-BDGw8qAr.js"),
     meta: { icon: "icon-box", label: "#archivedUsers_archive" },
     conditions: [{ alias: n }]
   },
@@ -94,7 +95,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Unarchive User",
     weight: 449,
     forEntityTypes: [e],
-    api: () => import("./unarchive.action-CUE3wehP.js"),
+    api: () => import("./unarchive.action-D9s08Eyf.js"),
     meta: { icon: "icon-undo", label: "#archivedUsers_unarchive" },
     conditions: [{ alias: c }]
   },
@@ -105,7 +106,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Archive Users",
     weight: 50,
     forEntityTypes: [e],
-    api: () => import("./archive.bulk-action-Di765B7T.js"),
+    api: () => import("./archive.bulk-action-TOml7sQp.js"),
     meta: { icon: "icon-box", label: "#archivedUsers_archive" },
     conditions: [{ alias: i, match: t }]
   },
@@ -116,7 +117,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     name: "Unarchive Users",
     weight: 50,
     forEntityTypes: [e],
-    api: () => import("./unarchive.bulk-action-39F61mYC.js"),
+    api: () => import("./unarchive.bulk-action-CdovoHRp.js"),
     meta: { icon: "icon-undo", label: "#archivedUsers_unarchive" },
     conditions: [{ alias: i, match: s }]
   },
@@ -126,7 +127,7 @@ const l = "ArchivedUsers.Modal.ArchiveConfirm", C = new A(
     alias: "ArchivedUsers.CollectionAction.User.ArchiveDisabled",
     name: "Archive Disabled Users",
     weight: 50,
-    api: () => import("./archive-disabled.action-CfQNfamc.js"),
+    api: () => import("./archive-disabled.action-CbLAWVho.js"),
     meta: { label: "#archivedUsers_archiveDisabled" },
     // Same conditions as core's Create action: the Users collection, never inside a picker modal (F3).
     conditions: [
