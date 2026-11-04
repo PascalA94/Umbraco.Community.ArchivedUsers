@@ -15,23 +15,24 @@ env:
 jobs:
   integration-sqlserver:
     runs-on: ubuntu-latest
-    services:
-      sqlserver:
-        image: mcr.microsoft.com/mssql/server:2022-latest
-        env:
-          ACCEPT_EULA: 'Y'
-          # Throwaway container password for CI only; not a secret.
-          MSSQL_SA_PASSWORD: 'Nightly-Ci-Only-Pw-1!'
-        ports:
-          - 1433:1433
-        options: >-
-          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'Nightly-Ci-Only-Pw-1!' -C -Q 'SELECT 1'"
-          --health-interval 10s --health-timeout 5s --health-retries 20
     env:
       Tests__Database__DatabaseType: SqlServer
-      Tests__Database__SQLServerMasterConnectionString: 'Server=localhost,1433;User Id=sa;Password=Nightly-Ci-Only-Pw-1!;TrustServerCertificate=true;Encrypt=false'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # SQL Server and every login get a random password per run, masked in the logs; nothing is stored in the repo.
+      - name: Start SQL Server with a random throwaway password
+        run: |
+          pw="Ci-$(openssl rand -hex 16)-Aa1!"
+          echo "::add-mask::$pw"
+          docker run -d --name sqlserver -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$pw" -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+          for i in $(seq 1 60); do
+            docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$pw" -C -Q 'SELECT 1' >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$pw" -C -Q 'SELECT 1' >/dev/null
+          echo "SA_PASSWORD=$pw" >> "$GITHUB_ENV"
+          echo "Tests__Database__SQLServerMasterConnectionString=Server=localhost,1433;User Id=sa;Password=$pw;TrustServerCertificate=true;Encrypt=false" >> "$GITHUB_ENV"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
@@ -77,20 +78,44 @@ jobs:
         leg: [floor, latest]
     env:
       ASPNETCORE_ENVIRONMENT: Development
-      # Throwaway CI-only credentials for a disposable demo database; not secrets.
-      Umbraco__CMS__Unattended__UnattendedUserPassword: 'Ci-Admin-Only-Pw-1!'
-      ArchivedUsersDemo__UserPassword: 'Ci-Demo-Only-Pw-1!'
+      ConnectionStrings__umbracoDbDSN_ProviderName: Microsoft.Data.SqlClient
       # Umbraco's OpenIddict server refuses plain HTTP (ID2083), so the demo runs on HTTPS with the .NET dev certificate.
       URL: https://localhost:44331
       # Invitation links need a fixed application URL on Umbraco 18.3+.
       Umbraco__CMS__WebRouting__UmbracoApplicationUrl: https://localhost:44331
       ADMIN_EMAIL: admin@example.test
-      ADMIN_PASSWORD: 'Ci-Admin-Only-Pw-1!'
       MANAGER_EMAIL: morgan@example.test
-      MANAGER_PASSWORD: 'Ci-Demo-Only-Pw-1!'
-      TEST_USER_PASSWORD: 'Ci-E2e-Only-Pw-1!'
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # SQL Server and every login get a random password per run, masked in the logs; nothing is stored in the repo.
+      - name: Start SQL Server with a random throwaway password
+        run: |
+          pw="Ci-$(openssl rand -hex 16)-Aa1!"
+          echo "::add-mask::$pw"
+          docker run -d --name sqlserver -e ACCEPT_EULA=Y -e "MSSQL_SA_PASSWORD=$pw" -p 1433:1433 mcr.microsoft.com/mssql/server:2022-latest
+          for i in $(seq 1 60); do
+            docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$pw" -C -Q 'SELECT 1' >/dev/null 2>&1 && break
+            sleep 2
+          done
+          docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$pw" -C -Q 'SELECT 1' >/dev/null
+          echo "SA_PASSWORD=$pw" >> "$GITHUB_ENV"
+          # The demo runs on SQL Server, not SQLite: SQLite allows one writer at a time, and plain Umbraco can stall when the
+          # backoffice and a test save users at once, which made e2e flaky. SQLite stays covered by every PR's integration tests.
+          docker exec sqlserver /opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P "$pw" -C -Q 'CREATE DATABASE ArchivedUsersDemo'
+          echo "ConnectionStrings__umbracoDbDSN=Server=localhost,1433;Database=ArchivedUsersDemo;User Id=sa;Password=$pw;TrustServerCertificate=true;Encrypt=false" >> "$GITHUB_ENV"
+
+      - name: Generate random demo passwords
+        run: |
+          admin="Ci-$(openssl rand -hex 16)-Aa1!"; demo="Ci-$(openssl rand -hex 16)-Aa1!"; test="Ci-$(openssl rand -hex 16)-Aa1!"
+          echo "::add-mask::$admin"; echo "::add-mask::$demo"; echo "::add-mask::$test"
+          {
+            echo "Umbraco__CMS__Unattended__UnattendedUserPassword=$admin"
+            echo "ADMIN_PASSWORD=$admin"
+            echo "ArchivedUsersDemo__UserPassword=$demo"
+            echo "MANAGER_PASSWORD=$demo"
+            echo "TEST_USER_PASSWORD=$test"
+          } >> "$GITHUB_ENV"
 
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
