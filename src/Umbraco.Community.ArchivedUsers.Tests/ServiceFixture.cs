@@ -169,8 +169,9 @@ internal sealed class ServiceFixture
         return monitor;
     }
 
+    /// <summary>Everything a log sink would write, including the exception text (review A2-2).</summary>
     public IEnumerable<string> LogText()
-        => Logger.Collector.GetSnapshot().Select(r => r.Message + " " + string.Join(" ", r.StructuredState?.Select(kv => kv.Value) ?? []));
+        => Logger.Collector.GetSnapshot().Select(r => r.Message + " " + string.Join(" ", r.StructuredState?.Select(kv => kv.Value) ?? []) + " " + r.Exception);
 
     public int LogCount(LogLevel level) => Logger.Collector.GetSnapshot().Count(r => r.Level == level);
 }

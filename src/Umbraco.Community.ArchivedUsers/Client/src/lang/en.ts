@@ -46,6 +46,8 @@ export default {
     skipNotFound: (count: number) => `${count} skipped: user not found`,
     skipCancelled: (count: number) => `${count} skipped: cancelled`,
     skipCoreRefused: (count: number) => `${count} skipped: Umbraco refused the change`,
+    skipDisabledNotArchived: (count: number) => `${count} skipped: disabled but not archived, archive again to finish`,
+    skipFailed: (count: number) => `${count} skipped: something went wrong, try again`,
     coreRefused: (status: string) => `Core refused: ${status}`,
     archiveFailed: 'The archive request failed.',
   },

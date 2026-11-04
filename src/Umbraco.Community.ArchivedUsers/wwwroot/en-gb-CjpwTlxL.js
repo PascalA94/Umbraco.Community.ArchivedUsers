@@ -1,4 +1,4 @@
-const s = {
+const i = {
   archivedUsers: {
     archive: "Archive",
     unarchive: "Unarchive",
@@ -42,10 +42,12 @@ const s = {
     skipNotFound: (e) => `${e} skipped: user not found`,
     skipCancelled: (e) => `${e} skipped: cancelled`,
     skipCoreRefused: (e) => `${e} skipped: Umbraco refused the change`,
+    skipDisabledNotArchived: (e) => `${e} skipped: disabled but not archived, archive again to finish`,
+    skipFailed: (e) => `${e} skipped: something went wrong, try again`,
     coreRefused: (e) => `Core refused: ${e}`,
     archiveFailed: "The archive request failed."
   }
 };
 export {
-  s as default
+  i as default
 };

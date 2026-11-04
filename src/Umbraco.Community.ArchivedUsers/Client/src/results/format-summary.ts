@@ -12,6 +12,8 @@ const SKIP_LINE: Record<SkipReason, (t: Translate, count: number) => string> = {
   NotFound: (t, n) => t('archivedUsers_skipNotFound', n),
   Cancelled: (t, n) => t('archivedUsers_skipCancelled', n),
   CoreRefused: (t, n) => t('archivedUsers_skipCoreRefused', n),
+  DisabledNotArchived: (t, n) => t('archivedUsers_skipDisabledNotArchived', n),
+  Failed: (t, n) => t('archivedUsers_skipFailed', n),
 };
 
 /**

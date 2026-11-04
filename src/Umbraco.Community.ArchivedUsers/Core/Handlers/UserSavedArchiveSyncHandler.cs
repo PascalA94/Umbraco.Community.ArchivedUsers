@@ -78,6 +78,14 @@ internal sealed class UserSavedArchiveSyncHandler : INotificationAsyncHandler<Us
         bool removed;
         using (ICoreScope scope = _scopeProvider.CreateCoreScope())
         {
+            // Read first: this runs on every save of an enabled user, and on SQLite even an empty DELETE takes the
+            // database's single write lock. Most users were never archived, so most saves now write nothing.
+            if (await _repository.GetAsync(user.Key) is null)
+            {
+                scope.Complete();
+                return;
+            }
+
             removed = await _repository.DeleteAsync(user.Key);
             if (removed)
             {
