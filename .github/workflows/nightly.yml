@@ -54,6 +54,17 @@ jobs:
       - name: Integration tests on SQL Server
         run: dotnet test src/Umbraco.Community.ArchivedUsers.IntegrationTests -c Release --no-build --logger "trx;LogFileName=sqlserver.trx"
 
+      # The concurrency test must really run on SQL Server; a silent skip fails the job (P6, T16).
+      - name: Concurrency tests on SQL Server
+        run: |
+          dotnet test src/Umbraco.Community.ArchivedUsers.IntegrationTests -c Release --no-build \
+            --filter TestCategory=Concurrency --logger "trx;LogFileName=concurrency.trx" --results-directory ./concurrency
+          trx=$(find ./concurrency -name concurrency.trx | head -1)
+          executed=$(grep -o 'executed="[0-9]*"' "$trx" | head -1 | grep -o '[0-9]*')
+          not_executed=$(grep -o 'notExecuted="[0-9]*"' "$trx" | head -1 | grep -o '[0-9]*')
+          echo "executed=$executed notExecuted=$not_executed"
+          test "$executed" -ge 1 && test "$not_executed" -eq 0
+
       - name: Upload test results
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
