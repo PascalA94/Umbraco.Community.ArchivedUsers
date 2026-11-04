@@ -141,7 +141,7 @@ export const confirmModal = (page: Page) => page.locator('archived-users-archive
 
 /**
  * Clicks a selection-bar bulk action and its confirm button. On a slow runner the first click can land before the
- * action is ready and open nothing, so it retries until the confirm modal is really visible. Never clicks Confirm twice.
+ * action is ready and open nothing, so it retries until the confirm modal is really visible and Confirm is clicked.
  */
 export async function bulkActionAndConfirm(page: Page, label: string): Promise<void> {
   const confirm = page.locator('uui-button#confirm').filter({ visible: true });
@@ -150,7 +150,9 @@ export async function bulkActionAndConfirm(page: Page, label: string): Promise<v
       await page.getByRole('button', { name: label, exact: true }).filter({ visible: true }).first().click();
     }
     await expect(confirm).toBeVisible({ timeout: 5_000 });
+    // Inside the retry: a redraw can detach the button mid-click. A click that lands closes the modal and ends the
+    // retry, so Confirm is never pressed twice.
+    await confirm.click({ timeout: 5_000 });
   }).toPass({ timeout: 60_000 });
-  await confirm.click();
 }
 
