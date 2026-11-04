@@ -1,9 +1,9 @@
-import { umbHttpClient as K } from "@umbraco-cms/backoffice/http-client";
-import { tryExecute as z } from "@umbraco-cms/backoffice/resources";
-const X = {
+import { umbHttpClient as X } from "@umbraco-cms/backoffice/http-client";
+import { tryExecute as E } from "@umbraco-cms/backoffice/resources";
+const Y = {
   bodySerializer: (e) => JSON.stringify(e, (t, r) => typeof r == "bigint" ? r.toString() : r)
 };
-function Y({
+function Z({
   onRequest: e,
   onSseError: t,
   onSseEvent: r,
@@ -33,9 +33,9 @@ function Y({
           headers: U,
           signal: g
         };
-        let E = new Request(m, j);
-        e && (E = await e(m, j));
-        const p = await (u.fetch ?? globalThis.fetch)(E);
+        let z = new Request(m, j);
+        e && (z = await e(m, j));
+        const p = await (u.fetch ?? globalThis.fetch)(z);
         if (!p.ok) throw new Error(`SSE failed: ${p.status} ${p.statusText}`);
         if (!p.body) throw new Error("No body in SSE response");
         const v = p.body.pipeThrough(new TextDecoderStream()).getReader();
@@ -49,8 +49,8 @@ function Y({
         g.addEventListener("abort", k);
         try {
           for (; ; ) {
-            const { done: F, value: G } = await v.read();
-            if (F) break;
+            const { done: Q, value: G } = await v.read();
+            if (Q) break;
             y += G, y = y.replace(/\r\n?/g, `
 `);
             const I = y.split(`
@@ -58,10 +58,10 @@ function Y({
 `);
             y = I.pop() ?? "";
             for (const M of I) {
-              const Q = M.split(`
+              const K = M.split(`
 `), O = [];
               let B;
-              for (const S of Q)
+              for (const S of K)
                 if (S.startsWith("data:"))
                   O.push(S.replace(/^data:\s*/, ""));
                 else if (S.startsWith("event:"))
@@ -72,22 +72,22 @@ function Y({
                   const P = Number.parseInt(S.replace(/^retry:\s*/, ""), 10);
                   Number.isNaN(P) || (d = P);
                 }
-              let x, N = !1;
+              let A, N = !1;
               if (O.length) {
                 const S = O.join(`
 `);
                 try {
-                  x = JSON.parse(S), N = !0;
+                  A = JSON.parse(S), N = !0;
                 } catch {
-                  x = S;
+                  A = S;
                 }
               }
-              N && (o && await o(x), a && (x = await a(x))), r?.({
-                data: x,
+              N && (o && await o(A), a && (A = await a(A))), r?.({
+                data: A,
                 event: B,
                 id: l,
                 retry: d
-              }), O.length && (yield x);
+              }), O.length && (yield A);
             }
           }
         } finally {
@@ -97,13 +97,13 @@ function Y({
       } catch (j) {
         if (t?.(j), n !== void 0 && h >= n)
           break;
-        const E = Math.min(d * 2 ** (h - 1), s ?? 3e4);
-        await w(E);
+        const z = Math.min(d * 2 ** (h - 1), s ?? 3e4);
+        await w(z);
       }
     }
   }() };
 }
-const Z = (e) => {
+const ee = (e) => {
   switch (e) {
     case "label":
       return ".";
@@ -114,7 +114,7 @@ const Z = (e) => {
     default:
       return "&";
   }
-}, ee = (e) => {
+}, te = (e) => {
   switch (e) {
     case "form":
       return ",";
@@ -125,7 +125,7 @@ const Z = (e) => {
     default:
       return ",";
   }
-}, te = (e) => {
+}, re = (e) => {
   switch (e) {
     case "label":
       return ".";
@@ -136,7 +136,7 @@ const Z = (e) => {
     default:
       return "&";
   }
-}, W = ({
+}, V = ({
   allowReserved: e,
   explode: t,
   name: r,
@@ -144,7 +144,7 @@ const Z = (e) => {
   value: o
 }) => {
   if (!t) {
-    const s = (e ? o : o.map((i) => encodeURIComponent(i))).join(ee(a));
+    const s = (e ? o : o.map((i) => encodeURIComponent(i))).join(te(a));
     switch (a) {
       case "label":
         return `.${s}`;
@@ -156,7 +156,7 @@ const Z = (e) => {
         return `${r}=${s}`;
     }
   }
-  const c = Z(a), n = o.map((s) => a === "label" || a === "simple" ? e ? s : encodeURIComponent(s) : T({
+  const c = ee(a), n = o.map((s) => a === "label" || a === "simple" ? e ? s : encodeURIComponent(s) : T({
     allowReserved: e,
     name: r,
     value: s
@@ -174,7 +174,7 @@ const Z = (e) => {
       "Deeply-nested arrays/objects aren’t supported. Provide your own `querySerializer()` to handle these."
     );
   return `${t}=${e ? r : encodeURIComponent(r)}`;
-}, V = ({
+}, L = ({
   allowReserved: e,
   explode: t,
   name: r,
@@ -201,7 +201,7 @@ const Z = (e) => {
         return m;
     }
   }
-  const n = te(a), s = Object.entries(o).map(
+  const n = re(a), s = Object.entries(o).map(
     ([i, m]) => T({
       allowReserved: e,
       name: a === "deepObject" ? `${r}[${i}]` : i,
@@ -209,9 +209,9 @@ const Z = (e) => {
     })
   ).join(n);
   return a === "label" || a === "matrix" ? n + s : s;
-}, re = /\{[^{}]+\}/g, se = ({ path: e, url: t }) => {
+}, se = /\{[^{}]+\}/g, ae = ({ path: e, url: t }) => {
   let r = t;
-  const a = t.match(re);
+  const a = t.match(se);
   if (a)
     for (const o of a) {
       let c = !1, n = o.substring(1, o.length - 1), s = "simple";
@@ -220,13 +220,13 @@ const Z = (e) => {
       if (i == null)
         continue;
       if (Array.isArray(i)) {
-        r = r.replace(o, W({ explode: c, name: n, style: s, value: i }));
+        r = r.replace(o, V({ explode: c, name: n, style: s, value: i }));
         continue;
       }
       if (typeof i == "object") {
         r = r.replace(
           o,
-          V({
+          L({
             explode: c,
             name: n,
             style: s,
@@ -252,7 +252,7 @@ const Z = (e) => {
       r = r.replace(o, m);
     }
   return r;
-}, ae = ({
+}, ne = ({
   baseUrl: e,
   path: t,
   query: r,
@@ -261,7 +261,7 @@ const Z = (e) => {
 }) => {
   const c = o.startsWith("/") ? o : `/${o}`;
   let n = (e ?? "") + c;
-  t && (n = se({ path: t, url: n }));
+  t && (n = ae({ path: t, url: n }));
   let s = r ? a(r) : "";
   return s.startsWith("?") && (s = s.substring(1)), s && (n += `?${s}`), n;
 };
@@ -272,11 +272,11 @@ function R(e) {
   if (t)
     return e.body;
 }
-const ne = async (e, t) => {
+const ie = async (e, t) => {
   const r = typeof t == "function" ? await t(e) : t;
   if (r)
     return e.scheme === "bearer" ? `Bearer ${r}` : e.scheme === "basic" ? `Basic ${btoa(r)}` : r;
-}, L = ({
+}, J = ({
   parameters: e = {},
   ...t
 } = {}) => (a) => {
@@ -288,7 +288,7 @@ const ne = async (e, t) => {
         continue;
       const s = e[c] || t;
       if (Array.isArray(n)) {
-        const i = W({
+        const i = V({
           allowReserved: s.allowReserved,
           explode: !0,
           name: c,
@@ -298,7 +298,7 @@ const ne = async (e, t) => {
         });
         i && o.push(i);
       } else if (typeof n == "object") {
-        const i = V({
+        const i = L({
           allowReserved: s.allowReserved,
           explode: !0,
           name: c,
@@ -317,7 +317,7 @@ const ne = async (e, t) => {
       }
     }
   return o.join("&");
-}, ie = (e) => {
+}, oe = (e) => {
   if (!e)
     return "stream";
   const t = e.split(";")[0]?.trim();
@@ -331,12 +331,12 @@ const ne = async (e, t) => {
     if (t.startsWith("text/"))
       return "text";
   }
-}, oe = (e, t) => t ? !!(e.headers.has(t) || e.query?.[t] || e.headers.get("Cookie")?.includes(`${t}=`)) : !1;
-async function ce(e) {
+}, ce = (e, t) => t ? !!(e.headers.has(t) || e.query?.[t] || e.headers.get("Cookie")?.includes(`${t}=`)) : !1;
+async function le(e) {
   for (const t of e.security ?? []) {
-    if (oe(e, t.name))
+    if (ce(e, t.name))
       continue;
-    const r = await ne(t, e.auth);
+    const r = await ie(t, e.auth);
     if (!r)
       continue;
     const a = t.name ?? "Authorization";
@@ -353,26 +353,26 @@ async function ce(e) {
     }
   }
 }
-const D = (e) => ae({
+const D = (e) => ne({
   baseUrl: e.baseUrl,
   path: e.path,
   query: e.query,
-  querySerializer: typeof e.querySerializer == "function" ? e.querySerializer : L(e.querySerializer),
+  querySerializer: typeof e.querySerializer == "function" ? e.querySerializer : J(e.querySerializer),
   url: e.url
 }), H = (e, t) => {
   const r = { ...e, ...t };
-  return r.baseUrl?.endsWith("/") && (r.baseUrl = r.baseUrl.substring(0, r.baseUrl.length - 1)), r.headers = J(e.headers, t.headers), r;
-}, le = (e) => {
+  return r.baseUrl?.endsWith("/") && (r.baseUrl = r.baseUrl.substring(0, r.baseUrl.length - 1)), r.headers = _(e.headers, t.headers), r;
+}, ue = (e) => {
   const t = [];
   return e.forEach((r, a) => {
     t.push([a, r]);
   }), t;
-}, J = (...e) => {
+}, _ = (...e) => {
   const t = new Headers();
   for (const r of e) {
     if (!r)
       continue;
-    const a = r instanceof Headers ? le(r) : Object.entries(r);
+    const a = r instanceof Headers ? ue(r) : Object.entries(r);
     for (const [o, c] of a)
       if (c === null)
         t.delete(o);
@@ -412,11 +412,11 @@ class $ {
     return this.fns.push(t), this.fns.length - 1;
   }
 }
-const ue = () => ({
+const de = () => ({
   error: new $(),
   request: new $(),
   response: new $()
-}), de = L({
+}), fe = J({
   allowReserved: !1,
   array: {
     explode: !0,
@@ -426,25 +426,25 @@ const ue = () => ({
     explode: !0,
     style: "deepObject"
   }
-}), fe = {
+}), he = {
   "Content-Type": "application/json"
-}, _ = (e = {}) => ({
-  ...X,
-  headers: fe,
+}, F = (e = {}) => ({
+  ...Y,
+  headers: he,
   parseAs: "auto",
-  querySerializer: de,
+  querySerializer: fe,
   ...e
-}), he = (e = {}) => {
-  let t = H(_(), e);
-  const r = () => ({ ...t }), a = (u) => (t = H(t, u), r()), o = ue(), c = async (u) => {
+}), pe = (e = {}) => {
+  let t = H(F(), e);
+  const r = () => ({ ...t }), a = (u) => (t = H(t, u), r()), o = de(), c = async (u) => {
     const l = {
       ...t,
       ...u,
       fetch: u.fetch ?? t.fetch ?? globalThis.fetch,
-      headers: J(t.headers, u.headers),
+      headers: _(t.headers, u.headers),
       serializedBody: void 0
     };
-    l.security && await ce(l), l.requestValidator && await l.requestValidator(l), l.body !== void 0 && l.bodySerializer && (l.serializedBody = l.bodySerializer(l.body)), (l.body === void 0 || l.serializedBody === "") && l.headers.delete("Content-Type");
+    l.security && await le(l), l.requestValidator && await l.requestValidator(l), l.body !== void 0 && l.bodySerializer && (l.serializedBody = l.bodySerializer(l.body)), (l.body === void 0 || l.serializedBody === "") && l.headers.delete("Content-Type");
     const w = l, b = D(w);
     return { opts: w, url: b };
   }, n = async (u) => {
@@ -468,7 +468,7 @@ const ue = () => ({
         response: f
       };
       if (f.ok) {
-        const p = (d.parseAs === "auto" ? ie(f.headers.get("Content-Type")) : d.parseAs) ?? "json";
+        const p = (d.parseAs === "auto" ? oe(f.headers.get("Content-Type")) : d.parseAs) ?? "json";
         if (f.status === 204 || f.headers.get("Content-Length") === "0") {
           let y;
           switch (p) {
@@ -516,13 +516,13 @@ const ue = () => ({
           ...j
         };
       }
-      const E = await f.text();
+      const z = await f.text();
       let q;
       try {
-        q = JSON.parse(E);
+        q = JSON.parse(z);
       } catch {
       }
-      throw q ?? E;
+      throw q ?? z;
     } catch (d) {
       let h = d;
       for (const g of o.error.fns)
@@ -537,7 +537,7 @@ const ue = () => ({
     }
   }, s = (u) => (l) => n({ ...l, method: u }), i = (u) => async (l) => {
     const { opts: w, url: b } = await c(l);
-    return Y({
+    return Z({
       ...w,
       body: w.body,
       method: u,
@@ -578,7 +578,7 @@ const ue = () => ({
     },
     trace: s("TRACE")
   };
-}, C = he(_({ baseUrl: "http://localhost:28331/" })), pe = (e) => (e?.client ?? C).get({
+}, C = pe(F({ baseUrl: "http://localhost:28331/" })), W = (e) => (e?.client ?? C).get({
   security: [{ scheme: "bearer", type: "http" }],
   url: "/umbraco/management/api/v1/archived-users",
   ...e
@@ -618,14 +618,16 @@ const ue = () => ({
     "Content-Type": "application/json",
     ...e.headers
   }
-}), A = K, Ee = {
-  config: (e) => z(e, we({ client: A })),
-  getOne: (e, t) => z(e, ye({ client: A, path: { id: t } }), { disableNotifications: !0 }),
-  list: (e, t) => z(e, pe({ client: A, query: t })),
-  archive: (e, t, r) => z(e, be({ client: A, body: { userIds: t, reason: r ?? null } })),
-  unarchive: (e, t) => z(e, ve({ client: A, body: { userIds: t, enable: null } })),
-  previewCleanUp: (e) => z(e, ge({ client: A })),
-  cleanUp: (e, t) => z(e, me({ client: A, body: { reason: t ?? null } }))
+}), x = X, Ee = {
+  config: (e) => E(e, we({ client: x })),
+  getOne: (e, t) => E(e, ye({ client: x, path: { id: t } }), { disableNotifications: !0 }),
+  list: (e, t) => E(e, W({ client: x, query: t })),
+  /** The archive-status background reload: errors stay quiet, so a failing server can't stack toasts (review A2-4). */
+  listQuietly: (e, t) => E(e, W({ client: x, query: t }), { disableNotifications: !0 }),
+  archive: (e, t, r) => E(e, be({ client: x, body: { userIds: t, reason: r ?? null } })),
+  unarchive: (e, t) => E(e, ve({ client: x, body: { userIds: t, enable: null } })),
+  previewCleanUp: (e) => E(e, ge({ client: x })),
+  cleanUp: (e, t) => E(e, me({ client: x, body: { reason: t ?? null } }))
 };
 export {
   Ee as a

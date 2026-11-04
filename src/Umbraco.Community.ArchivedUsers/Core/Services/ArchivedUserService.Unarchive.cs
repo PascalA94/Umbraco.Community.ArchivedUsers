@@ -26,20 +26,55 @@ internal sealed partial class ArchivedUserService
         foreach (Guid key in userKeys)
         {
             // Published after the lock is released (review BS-3, see ArchiveAsync).
-            UserUnarchivedNotification? unarchived;
+            UserUnarchivedNotification? unarchived = null;
             using (await _locks.AcquireAsync(key))
             {
-                (UserArchiveResult result, unarchived) = await UnarchiveOneAsync(performer!, key, enable, source);
+                UserArchiveResult result;
+                try
+                {
+                    (result, unarchived) = await UnarchiveOneAsync(performer!, key, enable, source);
+                }
+                catch (Exception ex)
+                {
+                    // Per user, never for the whole call (review C-6). Usually the scope was not completed and nothing
+                    // changed, but a post-commit handler can throw after the change, so report what is true (A2-1).
+                    _logger.LogError("Unarchiving user {UserKey} failed ({ExceptionType})", key, ex.GetType().Name);
+                    result = await ResultAfterUnarchiveFailureAsync(key);
+                }
+
                 results.Add(result);
             }
 
             if (unarchived is not null)
             {
-                await _events.PublishAsync(unarchived);
+                try
+                {
+                    await _events.PublishAsync(unarchived);
+                }
+                catch (Exception ex)
+                {
+                    // The user is unarchived; a failing subscriber must not fail the rest of the batch (A2-3).
+                    _logger.LogError("A UserUnarchived subscriber failed for {UserKey} ({ExceptionType})", key, ex.GetType().Name);
+                }
             }
         }
 
         return results;
+    }
+
+    /// <summary>Unarchive only throws for a user who had a record, so a missing record now means it was removed (A2-1).</summary>
+    private async Task<UserArchiveResult> ResultAfterUnarchiveFailureAsync(Guid key)
+    {
+        try
+        {
+            return await ReadRecordAsync(key) is null
+                ? new UserArchiveResult(key, ArchiveResultStatus.Unarchived)
+                : new UserArchiveResult(key, ArchiveResultStatus.Failed);
+        }
+        catch (Exception)
+        {
+            return new UserArchiveResult(key, ArchiveResultStatus.Failed);
+        }
     }
 
     private async Task<(UserArchiveResult Result, UserUnarchivedNotification? Notification)> UnarchiveOneAsync(IUser performer, Guid key, bool? enable, ArchiveSource source)
