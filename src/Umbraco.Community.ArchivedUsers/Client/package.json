@@ -11,7 +11,7 @@
   "devDependencies": {
     "@umbraco-cms/backoffice": "^18.3.0",
     "happy-dom": "^21.0.4",
-    "typescript": "^5.9.0",
+    "typescript": "^7.0.2",
     "vite": "^7.3.7",
     "vitest": "^4.0.0"
   },
