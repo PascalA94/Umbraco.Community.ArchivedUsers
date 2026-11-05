@@ -1,6 +1,6 @@
 {
   "name": "Umbraco.Community.ArchivedUsers",
-  "version": "18.0.0-alpha.2",
+  "version": "18.0.0-alpha.3",
   "allowTelemetry": true,
   "extensions": [
     {
