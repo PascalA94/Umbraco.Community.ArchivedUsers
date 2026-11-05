@@ -21,6 +21,7 @@
     <Copyright>Copyright © Pascal Meyer</Copyright>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
     <PackageProjectUrl>https://github.com/PascalA94/Umbraco.Community.ArchivedUsers</PackageProjectUrl>
     <RepositoryUrl>https://github.com/PascalA94/Umbraco.Community.ArchivedUsers</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -54,6 +55,7 @@
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\..\assets\icon.png" Pack="true" PackagePath="\" />
     <!-- The client source is not package content; only the built wwwroot assets ship -->
     <Content Remove="Client\**" />
     <None Include="Client\**" Pack="false" />

@@ -1,10 +1,18 @@
 # Archived Users for Umbraco
 
+[![NuGet](https://img.shields.io/nuget/vpre/Umbraco.Community.ArchivedUsers)](https://www.nuget.org/packages/Umbraco.Community.ArchivedUsers)
+[![NuGet downloads](https://img.shields.io/nuget/dt/Umbraco.Community.ArchivedUsers)](https://www.nuget.org/packages/Umbraco.Community.ArchivedUsers)
+[![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](https://github.com/PascalA94/Umbraco.Community.ArchivedUsers/blob/main/LICENSE)
+
+A community package, not made or supported by Umbraco HQ. Requires Umbraco 18.3+ (package 18.x) or Umbraco 17.8+ (package 17.x), on .NET 10.
+
 Adds an **Archived** area to the Umbraco Users section. Archive leavers so they drop out of the Users list and user pickers, while their history stays intact and every archive is recorded: who, whom, when and why.
 
 Umbraco won't delete a user who has ever logged in, so long-lived sites fill up with disabled ex-staff and ex-agency accounts. This package hides them without deleting anything.
 
 > **Status: prerelease (v0.1, "Archive by hand").** The API, settings and aliases may still change before 1.0.
+
+![The Archived users view](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-01-archived-users.png)
 
 ## What "archived" means
 
