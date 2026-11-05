@@ -6,7 +6,7 @@
 
 ## Branches and versioning
 
-- `main` targets Umbraco 18: `Umbraco.Cms.Web.Common` and `Umbraco.Cms.Api.Management` `[18.3.0, 19.0.0)`, npm `@umbraco-cms/backoffice ^18.3.0`. Versions `18.x.y` (`18.0.0-alpha.N` until 1.0).
+- `main` targets Umbraco 18: `Umbraco.Cms.Web.Common` and `Umbraco.Cms.Api.Management` `[18.3.0, 19.0.0)`, npm `@umbraco-cms/backoffice ^18.3.0`. Versions `18.x.y`, stable from 18.0.0: no breaking changes within a major.
 - `v17` targets Umbraco 17: `[17.8.0, 18.0.0)`, `^17.8.0`. Versions `17.x.y`.
 - A version bump touches the csproj `<Version>`, `Client/package.json`, `Client/package-lock.json` and `Client/public/umbraco-package.json` together.
 - Fix on `main` first, then cherry-pick to `v17`. `Core/` must stay identical on both branches; per-line differences live in `Web/`, `Client/` and build files only.
@@ -71,4 +71,4 @@ bash build/check-vulnerable.sh
    `bash build/check-release-version.sh v17.x.y` must exit 0 (`publish.yml` runs it, and checks the tag is on `main` or `v17`).
 3. Run the **Release checks** workflow by hand on the release branch (Actions → Release checks → Run workflow): Playwright e2e and SQL Server must pass. It does not run on PRs.
 4. Merge to `main` (or `v17`), tag `v18.x.y` (or `v17.x.y`) on the merge commit and push the tag. `publish.yml` packs and pushes with NuGet Trusted Publishing.
-5. `gh release create <tag> --prerelease --generate-notes` for prereleases.
+5. `gh release create <tag> --generate-notes` (add `--prerelease` only for a `-beta`/`-rc` tag).
