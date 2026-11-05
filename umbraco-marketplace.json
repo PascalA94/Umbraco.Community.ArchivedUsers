@@ -1,7 +1,7 @@
 {
   "$schema": "https://marketplace.umbraco.com/umbraco-marketplace-schema.json",
   "Title": "Archived Users",
-  "Description": "Adds an Archived area to the Umbraco Users section. Archive leavers so they leave the Users list and user pickers while their history stays intact. Every archive and unarchive records who, whom, when and why. Archiving always disables the user and never deletes them.",
+  "Description": "Tidy away ex-staff and old agency users. Archive leavers so they drop out of the Users list and user pickers, without deleting them. Archiving disables them, and every archive records who, whom, when and why.",
   "Category": "Editor Tools",
   "PackageType": "Package",
   "LicenseTypes": [
