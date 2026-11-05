@@ -10,7 +10,7 @@ Adds an **Archived** area to the Umbraco Users section. Archive leavers so they 
 
 Umbraco won't delete a user who has ever logged in, so long-lived sites fill up with disabled ex-staff and ex-agency accounts. This package hides them without deleting anything.
 
-> **Status: prerelease (v0.1, "Archive by hand").** The API, settings and aliases may still change before 1.0.
+> **v0.1, "Archive by hand".** Settings, API and aliases are stable within each Umbraco major: no breaking changes until the next major version.
 
 ![The Archived users view](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-01-archived-users.png)
 
@@ -25,7 +25,7 @@ Umbraco won't delete a user who has ever logged in, so long-lived sites fill up 
 ## Install
 
 ```bash
-dotnet add package Umbraco.Community.ArchivedUsers --prerelease
+dotnet add package Umbraco.Community.ArchivedUsers
 ```
 
 Run the site. The package creates its two tables on start-up (`archivedUsersUser`, `archivedUsersAudit`).
@@ -112,7 +112,7 @@ Remove the package. Its tables stay in the database; drop `archivedUsersUser` an
 | 18.x | 18.3.0 to 18.x (`[18.3.0, 19.0.0)`) | `main` |
 | 17.x | 17.8.0 to 17.x (`[17.8.0, 18.0.0)`) | `v17` |
 
-On Umbraco 17, install a 17.x version: `dotnet add package Umbraco.Community.ArchivedUsers --version 17.0.0-alpha.1`. A bare `--prerelease` install picks the newest 18.x, which needs Umbraco 18.
+On Umbraco 17, install a 17.x version: `dotnet add package Umbraco.Community.ArchivedUsers --version "17.*"`. A plain install picks the newest 18.x, which needs Umbraco 18.
 
 17.8.0 and 18.3.0 are the first releases where Umbraco refuses disabled users at sign-in, and they include the 27 October 2026 security fixes.
 
