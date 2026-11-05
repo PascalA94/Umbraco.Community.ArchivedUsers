@@ -15,7 +15,7 @@
 
   <PropertyGroup>
     <PackageId>Umbraco.Community.ArchivedUsers</PackageId>
-    <Version>17.0.0-alpha.3</Version>
+    <Version>17.0.0</Version>
     <Authors>Pascal Meyer</Authors>
     <Description>Adds an Archived area to the Umbraco Users section. Archive leavers so they leave the Users list and user pickers, keep their history, and record who archived whom, when and why. Archiving always disables the user and never deletes them.</Description>
     <Copyright>Copyright © Pascal Meyer</Copyright>
