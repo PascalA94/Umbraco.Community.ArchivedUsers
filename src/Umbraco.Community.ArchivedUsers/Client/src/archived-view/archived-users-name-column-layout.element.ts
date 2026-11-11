@@ -1,6 +1,6 @@
 import type { ArchivedUserCollectionItem } from './map-item.js';
 import './archived-user-name-cell.element.js';
-import { customElement, html, nothing, property } from '@umbraco-cms/backoffice/external/lit';
+import { css, customElement, html, nothing, property } from '@umbraco-cms/backoffice/external/lit';
 import { UmbLitElement } from '@umbraco-cms/backoffice/lit-element';
 import { UMB_EDIT_USER_WORKSPACE_PATH_PATTERN } from '@umbraco-cms/backoffice/user';
 
@@ -20,6 +20,19 @@ export class ArchivedUsersNameColumnLayoutElement extends UmbLitElement {
         .staleLabel=${this.localize.term('archivedUsers_staleTag')}></archived-user-name-cell
     ></a>`;
   }
+
+  // Core's own link colour and no underline until hover, so the name reads like core's user lists, not a raw browser link.
+  static override styles = css`
+    a {
+      color: var(--uui-color-interactive, #1b264f);
+      text-decoration: none;
+    }
+    a:hover,
+    a:focus-visible {
+      color: var(--uui-color-interactive-emphasis, #3544b1);
+      text-decoration: underline;
+    }
+  `;
 }
 
 declare global {

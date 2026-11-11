@@ -55,6 +55,19 @@ var m = class extends d {
         .staleLabel=${this.localize.term("archivedUsers_staleTag")}></archived-user-name-cell
     ></a>`;
 	}
+	static {
+		this.styles = a`
+    a {
+      color: var(--uui-color-interactive, #1b264f);
+      text-decoration: none;
+    }
+    a:hover,
+    a:focus-visible {
+      color: var(--uui-color-interactive-emphasis, #3544b1);
+      text-decoration: underline;
+    }
+  `;
+	}
 };
 t([l({ attribute: !1 })], m.prototype, "value", void 0), m = t([o("archived-users-name-column-layout")], m);
 // src/archived-view/archived-user-table.element.ts
