@@ -10,9 +10,9 @@ A community package, not made or supported by Umbraco HQ. Requires Umbraco 18.3+
 
 Umbraco won't delete a user who has ever logged in, so long-lived sites fill up with disabled ex-staff and ex-agency accounts. This package hides them without deleting anything.
 
-> **v0.1, "Archive by hand".** Settings, API and aliases are stable within each Umbraco major: no breaking changes until the next major version.
+> **Stable from 17.0.0.** Settings, API and aliases are stable within each Umbraco major: no breaking changes until the next major version.
 
-![The Archived users view](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-01-archived-users.png)
+![The Archived users view in the Users section, listing each archived user with their email, when they were archived, who archived them, the reason and their last login](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-01-archived-users.png)
 
 ## What "archived" means
 
@@ -37,6 +37,20 @@ Run the site. The package creates its two tables on start-up (`archivedUsersUser
 - **Archive every disabled user:** the **Archive disabled users** button next to Create shows how many will be archived and up to ten names before you confirm.
 - **Archived users** (under Users in the section menu): search by name or email, sort by name or archived date, open a user, or select rows and **Unarchive**.
 - If a disabled user has never logged in, the Archive dialog reminds you that Umbraco's own **Delete** works for them.
+
+Disabled users stay in the Users list until you archive them:
+
+![The Users list filtered to Disabled, showing former editors and never-logged-in users that are still listed](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-02-disabled-users-before.png)
+
+Archive one user from the actions menu on the user, or every disabled user at once from the Users list:
+
+![A user's actions menu open, with Archive below Delete, Disable and Change password](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-03-archive-action.png)
+
+![The Archive disabled users dialog: 10 disabled users will be archived, the first ten names are listed, and a reason field holds a ticket reference](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-04-archive-disabled-users.png)
+
+Archived users no longer appear in user pickers. Here Former Editors 01 to 04 are archived, so a search for "Former Editor" offers only 05 to 08:
+
+![A user picker in Content searched for Former Editor, offering only Former Editor 05 to 08](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-05-user-picker.png)
 
 Who can do what: anyone with access to the Users section can archive and unarchive **non-admin** users. Only admins can archive admins. Nobody can archive themselves, an invited user or the superuser. The package checks this on the server for every user, whatever the UI shows.
 
