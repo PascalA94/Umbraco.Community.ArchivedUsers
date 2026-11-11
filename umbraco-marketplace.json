@@ -31,12 +31,20 @@
       "Caption": "The Archived users view: who was archived, when, by whom and why."
     },
     {
-      "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-02-archive-confirm.png",
-      "Caption": "Archiving a user from the actions menu, with a reason."
+      "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-02-disabled-users-before.png",
+      "Caption": "Before: disabled users stay in the Users list until you archive them."
     },
     {
-      "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-03-archive-disabled-users.png",
-      "Caption": "Archive every disabled user at once, with a preview first."
+      "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-03-archive-action.png",
+      "Caption": "Archive a user from the Archive action in their actions menu."
+    },
+    {
+      "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-04-archive-disabled-users.png",
+      "Caption": "Archive every disabled user at once, with the count and names shown first and a reason."
+    },
+    {
+      "ImageUrl": "https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-05-user-picker.png",
+      "Caption": "Archived users are hidden from user pickers: Former Editors 01 to 04 are archived, so searching \"Former Editor\" offers only 05 to 08."
     }
   ]
 }
