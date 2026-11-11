@@ -15,7 +15,7 @@
 
   <PropertyGroup>
     <PackageId>Umbraco.Community.ArchivedUsers</PackageId>
-    <Version>17.0.0</Version>
+    <Version>17.0.1</Version>
     <Authors>Pascal Meyer</Authors>
     <Description>Tidy away ex-staff and old agency users. Archive leavers so they drop out of the Users list and user pickers, without deleting them. Archiving disables them, and every archive records who, whom, when and why.</Description>
     <Copyright>Copyright © Pascal Meyer</Copyright>

@@ -1,9 +1,10 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
-  <!-- Placeholder icon: an archive box holding a user. Replace with a final design when one exists. -->
-  <rect width="128" height="128" rx="24" fill="#1b264f"/>
-  <rect x="22" y="30" width="84" height="18" rx="4" fill="#f5c1bc"/>
-  <path d="M28 48h72v44a8 8 0 0 1-8 8H36a8 8 0 0 1-8-8z" fill="#ffffff"/>
-  <circle cx="64" cy="66" r="9" fill="#1b264f"/>
-  <path d="M46 92c2-11 9-16 18-16s16 5 18 16z" fill="#1b264f"/>
-  <rect x="54" y="35" width="20" height="8" rx="4" fill="#1b264f"/>
+  <title>Archived Users: a user filed in an archive box</title>
+  <rect width="128" height="128" rx="26" fill="#1b264f"/>
+  <rect x="1" y="1" width="126" height="126" rx="25" fill="none" stroke="#3b4b86" stroke-width="2"/>
+  <rect x="18" y="26" width="92" height="24" rx="6" fill="#f5c1bc"/>
+  <rect x="50" y="33" width="28" height="10" rx="5" fill="#1b264f"/>
+  <path d="M26 50h76v48a9 9 0 0 1-9 9H35a9 9 0 0 1-9-9z" fill="#ffffff"/>
+  <circle cx="64" cy="68" r="11" fill="#1b264f"/>
+  <path d="M42 98a22 19 0 0 1 44 0z" fill="#1b264f"/>
 </svg>

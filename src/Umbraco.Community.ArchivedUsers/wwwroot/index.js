@@ -60,7 +60,7 @@ var o = "archived-users-root", s = "ArchivedUsers.Workspace.Root", c = "Archived
 		type: "collectionView",
 		alias: "ArchivedUsers.CollectionView.ArchivedUser.Table",
 		name: "Archived Users Table Collection View",
-		element: () => import("./archived-user-table.element-DXl5ZpXG.js"),
+		element: () => import("./archived-user-table.element-D2s2crlX.js"),
 		meta: {
 			label: "Table",
 			icon: "icon-table",
