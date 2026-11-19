@@ -14,9 +14,16 @@ env:
 
 jobs:
   integration-sqlserver:
+    name: integration-sqlserver (${{ matrix.line }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        line: ['17', '18']
     env:
       Tests__Database__DatabaseType: SqlServer
+      # MSBuild reads environment variables as properties: this picks the Umbraco line (Directory.Build.props).
+      UmbracoMajor: ${{ matrix.line }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
@@ -40,7 +47,7 @@ jobs:
           dotnet-version: '10.x'
           # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
           cache: true
-          cache-dependency-path: '**/packages.lock.json'
+          cache-dependency-path: '**/packages.*.lock.json'
 
       - name: Restore (locked, floor)
         run: dotnet restore src/Umbraco.Community.ArchivedUsers.slnx --locked-mode
@@ -66,22 +73,26 @@ jobs:
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
-          name: release-checks-sqlserver
+          name: release-checks-sqlserver-${{ matrix.line }}
           path: '**/*.trx'
 
-  # Playwright against the demo site, at the floor and at the newest 18.x (T4 at both, P1).
+  # Playwright against the demo site, on each line at its floor and at its newest minor (T4 at both, P1).
   e2e:
+    name: e2e (${{ matrix.line }} ${{ matrix.leg }})
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
       matrix:
+        line: ['17', '18']
         leg: [floor, latest]
     env:
+      UmbracoMajor: ${{ matrix.line }}
+      UmbracoDemoVersion: ${{ matrix.leg == 'latest' && format('{0}.*', matrix.line) || '' }}
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__umbracoDbDSN_ProviderName: Microsoft.Data.SqlClient
       # Umbraco's OpenIddict server refuses plain HTTP (ID2083), so the demo runs on HTTPS with the .NET dev certificate.
       URL: https://localhost:44331
-      # Invitation links need a fixed application URL on Umbraco 18.3+.
+      # Invitation links need a fixed application URL on Umbraco 17.8+ and 18.3+.
       Umbraco__CMS__WebRouting__UmbracoApplicationUrl: https://localhost:44331
       ADMIN_EMAIL: admin@example.test
       MANAGER_EMAIL: morgan@example.test
@@ -123,7 +134,7 @@ jobs:
           dotnet-version: '10.x'
           # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
           cache: true
-          cache-dependency-path: '**/packages.lock.json'
+          cache-dependency-path: '**/packages.*.lock.json'
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -136,9 +147,9 @@ jobs:
         if: matrix.leg == 'floor'
         run: dotnet restore demo/Umbraco.Community.ArchivedUsers.DemoSite --locked-mode
 
-      - name: Restore demo (latest 18.x, unlocked)
+      - name: Restore demo (latest minor of the line, unlocked)
         if: matrix.leg == 'latest'
-        run: dotnet restore demo/Umbraco.Community.ArchivedUsers.DemoSite "-p:UmbracoDemoVersion=18.*" --force-evaluate -p:RestoreLockedMode=false
+        run: dotnet restore demo/Umbraco.Community.ArchivedUsers.DemoSite --force-evaluate -p:RestoreLockedMode=false
 
       # Kestrel needs a certificate for HTTPS; the dev certificate is enough (Playwright ignores HTTPS errors).
       - name: Create the HTTPS dev certificate
@@ -147,8 +158,7 @@ jobs:
       - name: Start the demo site
         run: |
           start() {
-            dotnet run --project demo/Umbraco.Community.ArchivedUsers.DemoSite --no-restore --no-launch-profile --urls https://localhost:44331 \
-              ${{ matrix.leg == 'latest' && '"-p:UmbracoDemoVersion=18.*"' || '' }} >> demo.log 2>&1 &
+            dotnet run --project demo/Umbraco.Community.ArchivedUsers.DemoSite --no-restore --no-launch-profile --urls https://localhost:44331 >> demo.log 2>&1 &
             for i in $(seq 1 120); do curl -skf -o /dev/null https://localhost:44331/umbraco && return 0; sleep 2; done
             return 1
           }
@@ -170,7 +180,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
-          name: e2e-${{ matrix.leg }}
+          name: e2e-${{ matrix.line }}-${{ matrix.leg }}
           path: |
             tests/e2e/playwright-report
             tests/e2e/test-results

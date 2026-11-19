@@ -67,7 +67,7 @@ public class ArchivedUserListFilterTests
     private ArchivedUserListFilter Create() => new(
         ServiceFixture.Options(_settings), _archive, _users, _presentation, _security, _clock, new FakeTimeProvider(), _logger);
 
-    private ActionExecutingContext Context(Type? controller = null, string action = "Filter2", string method = "GET")
+    private ActionExecutingContext Context(Type? controller = null, string action = ArchivedUserListFilter.BoundActionName, string method = "GET")
     {
         var http = new DefaultHttpContext();
         http.Request.Method = method;
@@ -140,7 +140,12 @@ public class ArchivedUserListFilterTests
     [Fact]
     public async Task Same_controller_other_action_calls_next()
     {
+        // The bound action is Filter on 17 and Filter2 otherwise, so the other line's name must not match.
+#if UMBRACO_17
+        await Run(Context(action: "Filter2"));
+#else
         await Run(Context(action: "Filter"));
+#endif
 
         Assert.True(_nextCalled);
     }

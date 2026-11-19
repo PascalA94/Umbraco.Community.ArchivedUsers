@@ -143,3 +143,20 @@ Pass (closed) when: Every surface that calls `/filter/user` is listed.
 | User editor, `/item/user` refs (content "created by", group member refs), current user | `user/{id}`, `item/user`, `user/current` | No (never filtered) | No |
 - `/filter/user` requires `SectionAccessUsers`, so an editor without Users-section access cannot use the user-picker modal in core either; the package changes nothing there.
 - README D1 section (Task 17) carries this table.
+
+## v17 line (Task 19, 2026-11-04, Umbraco 17.8.0)
+
+- **Core contract on 17.8.0:** `CoreContractTests` pass at the floor (Gating, Tripwire, Recording), on SQLite and SQL Server 2022. S2, S4, U3 and the AU-01 tripwires hold on 17 as on 18. `17.*` resolves to 17.8.0 today, so the latest leg equals the floor.
+- **S1 on 17:** GO. Core's live action is `Filter` (no `userKinds`), [FilterUserFilterController.cs at release-17.8.0](https://github.com/umbraco/Umbraco-CMS/blob/83984e2515634f5812d9af99e0149cd7d94622c8/src/Umbraco.Cms.Api.Management/Controllers/User/Filter/FilterUserFilterController.cs); its defaults match `Filter2` on 18 (skip 0, take 100, UserName, Ascending). The filter binds `Filter`; the tripwire `Filter_user_action_name_is_Filter` asserts it, and that no `Filter2` exists.
+- **`UserKind.Api` exists on 17.8**, so `UMBRACO_HAS_API_USERS` stays. `UserFilter` has no `IncludeUserKinds` on 17, so a `userKinds` query is ignored, exactly as core ignores it.
+- **S6 on 17:** Swashbuckle document `archived-users` at `/umbraco/swagger/archived-users/swagger.json` (OpenAPI 3.0.4): 7 operations under "Archived Users", the backoffice security requirement and 401/403 on each, and operation IDs identical to 18's (a package `IOperationIdHandler`, because core's handler names only `Umbraco.Cms.Api.*` controllers). The regenerated client differs only in nullable ordering and optional request bodies.
+- **Line difference:** core 17 writes ProblemDetails 400s as `application/json`; 18 uses `application/problem+json`. The body is the same.
+- **Runtime (17.8.0 demo, fresh DB):** Playwright 15 passed, 0 skipped; Task 18 negative and edge checks give the same results as on 18.
+
+## One client bundle (fold of 17 and 18 onto main)
+
+- **Decision:** one committed `wwwroot/` and one generated client serve both lines.
+- **Routes and payloads:** the client calls the same seven URLs and methods on 17 and 18. `git diff origin/v17 origin/main` of `Client/src` touches `client.gen.ts`, `sdk.gen.ts` and `types.gen.ts` only, and the differences are type-level (`null | string` ordering, optional `body`, 18's `elementStartNodeIds` and `hasElementRootAccess` on `UserResponseModel`, the default `baseUrl`). No client source outside `generated/` uses those fields.
+- **Built JavaScript:** the built `archived-users.api-*.js` differs between the two branches only in the unused default `baseUrl` and `e?.client` versus `e.client`. `Client/src/api/archived-users.api.ts` always passes `{ client, ... }`, so neither is reachable. Other chunks differ only in the hash of their import of the api chunk.
+- **Type-check and tests:** `@umbraco-cms/backoffice@17.8.0` gives `tsc --noEmit` clean and vitest 48 of 48 (re-run on the fold branch, 18 Nov 2026).
+- **Fallback if the rule ever fails:** one `wwwroot` per line, swapped in by `build/pack.sh`, and the OpenAPI document path from the line (`swagger/archived-users/swagger.json` on 17, `openapi/archived-users.json` on 18).

@@ -4,9 +4,9 @@ Issues and pull requests are welcome. For anything bigger than a small fix, open
 
 ## Branches
 
-- `main` is the Umbraco 18 line (package 18.x). `v17` is the Umbraco 17 line (package 17.x).
-- Open pull requests against `main`. Fixes that apply to both lines are then ported to `v17`.
-- Code under `src/Umbraco.Community.ArchivedUsers/Core/` must stay identical on both branches.
+- `main` carries both lines: Umbraco 18 (package 18.x) and Umbraco 17 (package 17.x). `UmbracoMajor` (`18` by default, or `17`) picks the line. `v17` is frozen history.
+- Open pull requests against `main`. A change applies to both lines unless it sits behind `#if UMBRACO_17` or in a per-line file.
+- `bash build/test.sh` runs the unit and integration tests once per line.
 
 ## Build and test
 
@@ -16,6 +16,7 @@ You need the .NET 10 SDK and Node (the version in `src/Umbraco.Community.Archive
 dotnet restore src/Umbraco.Community.ArchivedUsers.slnx --locked-mode
 dotnet build src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-restore
 dotnet test src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-build
+# the default line is 18; add -p:UmbracoMajor=17 to each command for 17, or run: bash build/test.sh
 
 cd src/Umbraco.Community.ArchivedUsers/Client
 npm ci --ignore-scripts && npm run build && npm test
@@ -40,7 +41,7 @@ The first run installs Umbraco; run it again to seed the demo users.
 Pack with a unique version each time, because NuGet's global cache keeps serving the first build of any version number:
 
 ```bash
-dotnet pack src/Umbraco.Community.ArchivedUsers -c Release -o ~/local-nuget -p:Version=18.0.0-local.$(date +%s)
+dotnet pack src/Umbraco.Community.ArchivedUsers -c Release -o ~/local-nuget -p:Version=18.0.0-local.$(date +%s)   # use 17.0.0-local... with -p:UmbracoMajor=17 for the 17 line
 dotnet nuget add source ~/local-nuget --name local   # once
 dotnet add package Umbraco.Community.ArchivedUsers --version 18.0.0-local.<timestamp>
 ```

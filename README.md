@@ -121,10 +121,10 @@ Remove the package. Its tables stay in the database; drop `archivedUsersUser` an
 
 ## Supported versions
 
-| Package | Umbraco | Branch |
+| Package | Umbraco | Line |
 |---|---|---|
 | 18.x | 18.3.0 to 18.x (`[18.3.0, 19.0.0)`) | `main` |
-| 17.x | 17.8.0 to 17.x (`[17.8.0, 18.0.0)`) | `v17` |
+| 17.x | 17.8.0 to 17.x (`[17.8.0, 18.0.0)`) | `main` |
 
 On Umbraco 17, install a 17.x version: `dotnet add package Umbraco.Community.ArchivedUsers --version "17.*"`. A plain install picks the newest 18.x, which needs Umbraco 18.
 

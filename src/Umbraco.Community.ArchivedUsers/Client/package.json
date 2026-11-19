@@ -1,6 +1,6 @@
 {
   "name": "umbraco-community-archived-users-client",
-  "version": "18.0.1",
+  "version": "0.0.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -11,7 +11,7 @@
   },
   "devDependencies": {
     "@hey-api/openapi-ts": "0.99.0",
-    "@umbraco-cms/backoffice": "^18.3.0",
+    "@umbraco-cms/backoffice": "^17.8.0",
     "happy-dom": "^21.0.4",
     "typescript": "^7.0.2",
     "vite": "^8.3.5",
