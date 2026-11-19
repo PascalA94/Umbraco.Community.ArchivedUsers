@@ -201,18 +201,34 @@ public class FilterUserTests : FilterUserTestBase
     }
 
 #if UMBRACO_HAS_API_USERS
+#if UMBRACO_17
+    /// <summary>
+    /// T9, AU-10, 17 line: core's Filter action at release-17.8.0 has no userKinds parameter, so a userKinds query
+    /// is ignored exactly as core ignores it; archived API users are still hidden.
+    /// </summary>
+    [Test]
+    public async Task Filter_user_ignores_userKinds_like_core()
+#else
     /// <summary>T9, AU-10: userKinds is honoured.</summary>
     [Test]
     public async Task Filter_user_honours_userKinds()
+#endif
     {
         IUser apiKept = await Users.CreateApiUserAsync("fltr api kept", "umbraco-back-office-fltr-kept", "secret-kept-0123456789-abcdef");
         IUser apiArchived = await Users.CreateApiUserAsync("fltr api archived", "umbraco-back-office-fltr-arch", "secret-arch-0123456789-abcdef");
         await PostStatusesAsync(AdminClient, "archive", new { userIds = new[] { apiArchived.Key } });
 
+#if UMBRACO_17
+        (List<Guid> ids, int total) = await GetAsync(AdminClient, "userKinds=Api&take=1000");
+
+        Assert.That(ids, Does.Contain(apiKept.Key).And.Not.Contain(apiArchived.Key));
+        Assert.That(ids, Does.Contain(Seeded[0].Key), "no kind filtering on 17.x");
+#else
         (List<Guid> ids, int total) = await GetAsync(AdminClient, "userKinds=Api&take=100");
 
         Assert.That(ids, Does.Contain(apiKept.Key).And.Not.Contain(apiArchived.Key));
         Assert.That(ids, Does.Not.Contain(Seeded[0].Key));
+#endif
         Assert.That(total, Is.EqualTo(ids.Count));
     }
 

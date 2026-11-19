@@ -3,7 +3,7 @@ name: Publish to NuGet
 on:
   push:
     tags:
-      - 'v*'
+      - 'release/*'
 
 permissions:
   contents: read
@@ -21,15 +21,9 @@ jobs:
         with:
           fetch-depth: 0
 
-      # A tag publishes only from its line's release branch: v18.* from main, v17.* from v17 (review C-13).
-      - name: Tag is on its release branch
-        run: |
-          case "$GITHUB_REF_NAME" in
-            v18.*) branch=main ;;
-            v17.*) branch=v17 ;;
-            *) echo "Unexpected tag $GITHUB_REF_NAME" >&2; exit 1 ;;
-          esac
-          git merge-base --is-ancestor "$GITHUB_SHA" "origin/$branch"
+      # One branch carries every line, so a tag publishes only from main (review C-13).
+      - name: Tag is on main
+        run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
 
       - name: Version files match the tag
         run: bash build/check-release-version.sh "$GITHUB_REF_NAME"
@@ -56,25 +50,40 @@ jobs:
         with:
           dotnet-version: '10.x'
 
-      - name: Restore (locked)
-        run: dotnet restore src/Umbraco.Community.ArchivedUsers.slnx --locked-mode
-
-      - name: Build
-        run: dotnet build src/Umbraco.Community.ArchivedUsers.slnx --no-restore -c Release
-
-      - name: Test
-        run: dotnet test src/Umbraco.Community.ArchivedUsers.slnx --no-build -c Release
-
-      # Release gate (T21): parsed output, never the exit code.
-      - name: Vulnerable packages
-        run: bash build/check-vulnerable.sh
-
-      # Only the package is packed: tests and the demo site are IsPackable=false.
-      - name: Pack
+      # Every line in eng/lines.txt is restored (locked), built, tested and checked for known advisories before anything
+      # is packed. The advisory gate (T21) reads parsed output, never the exit code.
+      - name: Build, test and audit the lines
         run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          dotnet pack src/Umbraco.Community.ArchivedUsers/Umbraco.Community.ArchivedUsers.csproj \
-            --no-build -c Release "-p:Version=$VERSION" -o ./artifacts
+          # Lines come from a word list, not `while read < file`: a dotnet child reading stdin would otherwise end the loop early.
+          for line in $(cat eng/lines.txt); do
+            echo "== Umbraco $line"
+            dotnet restore src/Umbraco.Community.ArchivedUsers.slnx "-p:UmbracoMajor=$line" --locked-mode
+            dotnet build src/Umbraco.Community.ArchivedUsers.slnx --no-restore -c Release "-p:UmbracoMajor=$line"
+            dotnet test src/Umbraco.Community.ArchivedUsers.slnx --no-build -c Release "-p:UmbracoMajor=$line"
+            UmbracoMajor="$line" bash build/check-vulnerable.sh
+          done
+
+      # One nupkg per line, each carrying wwwroot. Only the package is packed: tests and the demo site are
+      # IsPackable=false. pack.sh stamps the line's version into the manifest and restores it afterwards.
+      - name: Pack
+        run: bash build/pack.sh ./artifacts
+
+      - name: Packages contain the client bundle
+        run: |
+          shopt -s nullglob
+          packs=(./artifacts/*.nupkg)
+          [ "${#packs[@]}" -eq 2 ] || { echo "expected 2 nupkgs, found ${#packs[@]}" >&2; exit 1; }
+          # The version comes from Directory.Build.props; the tag was checked against it, so the file names must match the tag.
+          want="${GITHUB_REF_NAME#release/}"
+          for line in $(cat eng/lines.txt); do
+            [ -f "./artifacts/Umbraco.Community.ArchivedUsers.$line.$want.nupkg" ] || { echo "missing the $line.$want nupkg" >&2; exit 1; }
+          done
+          for f in "${packs[@]}"; do
+            unzip -l "$f" | grep -q 'staticwebassets/index.js' || { echo "$f has no staticwebassets/index.js" >&2; exit 1; }
+            # Per-line NuGet lock files must not ship in the package.
+            listing="$(unzip -Z1 "$f")"
+            case "$listing" in *lock.json*) echo "$f contains a lock file" >&2; exit 1;; esac
+          done
 
       - name: Upload packages
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -117,4 +126,5 @@ jobs:
         run: |
           dotnet nuget push ./artifacts/*.nupkg \
             --source https://api.nuget.org/v3/index.json \
-            --api-key "$NUGET_API_KEY"
+            --api-key "$NUGET_API_KEY" \
+            --skip-duplicate

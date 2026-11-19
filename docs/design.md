@@ -389,9 +389,9 @@ Trust boundaries (for `security-analyst`):
 
 ### 7.1 Solution layout
 
-- One repo. Branches `main` (v18) and `v17`.
+- One repo, one branch (`main`), two lines (17 and 18) picked by `UmbracoMajor`. The `v17` branch is frozen history.
 - Suggested projects (architect's call):
-  - `Umbraco.Community.ArchivedUsers.Core`: services, repository, models, migrations, notifications, settings, job. **Identical on both branches.**
+  - `Umbraco.Community.ArchivedUsers.Core`: services, repository, models, migrations, notifications, settings, job. **Shared by both lines.**
   - `Umbraco.Community.ArchivedUsers`: controllers, list filter, OpenAPI wiring, composer, `App_Plugins` static assets. Differs per line.
   - `Umbraco.Community.ArchivedUsers.Client`: Vite + TypeScript + Lit. Differs per line.
   - `Umbraco.Community.ArchivedUsers.Automate`.
@@ -467,7 +467,7 @@ Trust boundaries (for `security-analyst`):
   4. Page in memory. Map with `IUserPresentationFactory.CreateResponseModel`.
   5. Return `PagedViewModel<UserResponseModel>` with the filtered total.
 - The whole package branch (steps 1 to 5, the archived-key read and the fast-path check) is wrapped in try/catch. On any exception: log once per hour at Error and call `next()`. Fail open (AU-10).
-- Each line has its own filter class (v17 has no `userKinds`).
+- One filter class serves both lines; the bound action name and the `userKinds` argument sit behind `#if UMBRACO_17` (v17 has no `userKinds`).
 - Log a warning once per hour if the unfiltered total is above 5,000.
 - [unverified] that the short-circuit works at runtime and returns a payload the client accepts. **Spike S1.**
 - Never filter `GET /user/{id}`, `/item/user` or the current-user endpoints.
@@ -547,7 +547,7 @@ Trust boundaries (for `security-analyst`):
 - Every user-returning read goes through `FilterAsync` or a visibility check. Non-admins never get admin data.
 - 400 on validation errors as `ProblemDetails`. 403 from the policy. Request bodies are JSON only (415 otherwise); unknown body fields such as `source`, `performerKey` or `archivedUtc` are ignored (AU-12, AU-14).
 - v0.2 audit and export endpoints follow the F10 visibility rule; `userId` for a non-visible user returns an empty page (AU-08).
-- OpenAPI: register a package doc on each line (Swashbuckle on v17, `Microsoft.AspNetCore.OpenApi` on v18). Generate the TS client per line with `@hey-api/openapi-ts`.
+- OpenAPI: register a package doc on each line (Swashbuckle on v17, `Microsoft.AspNetCore.OpenApi` on v18). Generate the one TS client with `@hey-api/openapi-ts` (docs/spikes.md, "One client bundle").
 - Versioning: request and response models are the contract. Breaking changes need `v2` routes.
 
 **Background job (v0.2)**
@@ -648,7 +648,7 @@ Notes:
 
 ### 7.5 Automate sub-package
 
-- `Umbraco.Community.ArchivedUsers.Automate`. Same repo, same branches, same version as the main package (D5).
+- `Umbraco.Community.ArchivedUsers.Automate`. Same repo, same lines, same version as the main package (D5).
 - Depends on:
   - `Umbraco.Community.ArchivedUsers` at the exact same version.
   - `Umbraco.Automate.Core [17.0.0,18.0.0)` on `v17`, `[18.0.0,19.0.0)` on `main`. [verified ranges]
@@ -748,7 +748,7 @@ S1 is the go or no-go for the "clean Users list" promise. Do it first.
 - An archived performer can't archive anyone (`NotPermitted`).
 
 **CI**
-- Each branch: build, unit, integration on SQLite, API tests, frontend unit tests, against the floor and the latest 17.x or 18.x. Only the floor leg restores with `--locked-mode`; the latest-minor legs restore unlocked and never commit the lock file they produce (plan review P1).
+- Each line: build, unit, integration on SQLite, API tests, frontend unit tests, against the floor and the latest 17.x or 18.x. Only the floor leg restores with `--locked-mode`; the latest-minor legs restore unlocked and never commit the lock file they produce (plan review P1).
 - PR checks run in the repo's own CI (Pascal, 2026-10-30; no organisation enrolment): gitleaks over the PR's commits, osv-scanner over the committed lock files, and the parsed `dotnet list package --vulnerable --include-transitive` gate. A `wwwroot/` drift check fails the build if the committed bundle doesn't match a fresh client build.
 - Nightly: SQL Server and Playwright.
 - Manual before 1.0: load-balanced pair in Docker (job runs once, list consistent on both servers, concurrent double archive across the two servers gives one record and one audit row, archive on one server racing enable on the other leaves the user visible and the record reconciled) (AU-03, AU-14b).
@@ -758,24 +758,24 @@ S1 is the go or no-go for the "clean Users list" promise. Do it first.
 ## 10. Release and distribution
 
 **Branches**
-- `main` → Umbraco 18. Depends on `Umbraco.Cms.Web.Common` and `Umbraco.Cms.Api.Management` `[18.3.0,19.0.0)` (the controller base, route attribute and paged models live in `Api.Management` / `Api.Common`, plan review P12), npm `@umbraco-cms/backoffice@^18.3.0`.
-- `v17` → Umbraco 17. `[17.8.0,18.0.0)`, npm `^17.8.0`.
+- Line 18 (`UmbracoMajor=18`, the default) → Umbraco 18. Depends on `Umbraco.Cms.Web.Common` and `Umbraco.Cms.Api.Management` `[18.3.0,19.0.0)` (the controller base, route attribute and paged models live in `Api.Management` / `Api.Common`, plan review P12), npm `@umbraco-cms/backoffice@^18.3.0`.
+- Line 17 (`UmbracoMajor=17`) → Umbraco 17. `[17.8.0,18.0.0)`. One client bundle, built against npm `^17.8.0`, serves both lines (docs/spikes.md).
 - Same pattern as Pascal's Forms Audit Trail.
 - Lower bound: **`17.8.0` and `18.3.0`** (Pascal, 2026-10-30). Why: 17.8.0 / 18.3.0 are the first releases where core's authorize flow refuses a disabled user instead of issuing new tokens (PR #23995, issue #15309) [verified, review V12], and they sit above the 27 Oct 2026 advisories (GHSA-rpv9-qp4c-g469 High 8.8, GHSA-4qmm-fhgv-vq9g, fixed in 17.7.2 / 18.2.2) [verified, review V17]. Do not lower the floor without re-opening AU-02. Never claim a minor that CI doesn't test, so the Marketplace badge is honest.
-- Core project identical on both branches. Fix on `main`, cherry-pick to `v17`. Only the list filter, OpenAPI wiring, client and possibly Automate differ.
+- Core project shared by both lines. Only the list filter, OpenAPI wiring and tests behind `#if UMBRACO_17` differ.
 
 **Version numbers** (architect's call, follows the release-line pattern in the scope)
-- Package versions follow the Umbraco major: `18.x.y` on `main`, `17.x.y` on `v17`.
+- Package versions follow the Umbraco major: `18.x.y` for line 18, `17.x.y` for line 17, both from `Directory.Build.props`.
 - Feature milestones map to prereleases until 1.0:
 
-| Milestone | `main` | `v17` |
+| Milestone | Line 18 | Line 17 |
 |---|---|---|
 | ID reservation | `0.0.1-alpha` (both IDs, empty, unlisted after push) | n/a |
 | v0.1 | `18.0.0-alpha.N` | `17.0.0-alpha.N` |
 | v0.2 | `18.0.0-beta.N` | `17.0.0-beta.N` |
 | v1.0 | `18.0.0` | `17.0.0` |
 
-- Order per release: `main` first, `v17` within a week.
+- Order per release: one `release/<minor>.<patch>` tag packs both lines.
 
 **ID reservation (do first)**
 - Push `0.0.1-alpha` of `Umbraco.Community.ArchivedUsers` and `Umbraco.Community.ArchivedUsers.Automate` from Pascal's NuGet account. Free as of 2026-10-29 [verified].
@@ -795,11 +795,11 @@ S1 is the go or no-go for the "clean Users list" promise. Do it first.
 **Supply chain (AU-15)**
 - `@umbraco-cms/backoffice` is a Vite external and a `devDependency` (section 7.3).
 - Commit `package-lock.json`; CI installs with `npm ci --ignore-scripts`. If a build tool needs its install script, allow-list it explicitly and say why in a comment.
-- `<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>` and committed `packages.lock.json`; CI restores with `--locked-mode`.
+- `<RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>` and committed `packages.<line>.lock.json`; CI restores with `--locked-mode`.
 - Pin every GitHub Action to a commit SHA, with the tag in a comment.
 - Publish with NuGet Trusted Publishing (OIDC) from `publish.yml` (architect's call over a scoped API key: no long-lived secret). 2FA on Pascal's NuGet and GitHub accounts.
 - Dependabot for NuGet, npm and GitHub Actions (architect's call over Renovate: GitHub-native, nothing to host).
-- The repo is **public from scaffold** (Pascal, 2026-10-30, GitHub Free plan). PR checks run in the repo's own CI from the first commit: gitleaks, osv-scanner and the vulnerable-package gate. No mf-harness organisation enrolment. GitHub secret scanning with push protection, Dependabot alerts and CodeQL default setup are switched on, and a branch ruleset on `main` and `v17` requires those checks.
+- The repo is **public from scaffold** (Pascal, 2026-10-30, GitHub Free plan). PR checks run in the repo's own CI from the first commit: gitleaks, osv-scanner and the vulnerable-package gate. No mf-harness organisation enrolment. GitHub secret scanning with push protection, Dependabot alerts and CodeQL default setup are switched on, and a branch ruleset on `main` requires those checks.
 - Public docs: the repo's `docs/` holds `design.md`, `plan.md` and `spikes.md` only. `security-review.md`, `plan-review.md`, milestone review reports and council transcripts stay in Pascal's private workspace. Nothing about an undisclosed vulnerability in core or Automate goes into the repo.
 - Release gate: parse `dotnet list package --vulnerable --include-transitive` output, never its exit code; osv-scanner in PR checks green.
 - `.Automate` keeps an exact-version dependency on the main package.
@@ -825,7 +825,7 @@ S1 is the go or no-go for the "clean Users list" promise. Do it first.
 | In-memory paging on large user tables | Slow list | Fine under a few thousand. Warning above 5,000. Hard ceiling of 20,000 visible users, above which the filter falls back to core (AU-13). **Scale plan:** move to a SQL join of `FilterAsync`'s query with the archive table, if a client site needs hiding above the ceiling |
 | Load-balanced servers | Job runs twice, stale list | `IDistributedBackgroundJob`. No cache in v0.1 |
 | HQ ships auto-disable (#21633) | Policy loses value | Lead with archive view and audit. Keep the policy thin |
-| Two lines double the work | Slow v17 fixes | Identical Core. Small client. CI on both |
+| Two lines double the work | Slow v17 fixes | Shared Core and one client bundle. CI on both lines |
 | v19 lands (around Q4 2026) | A third line | Out of scope for this doc. Decide at v19 RC |
 | Automate API differs between 17 and 18 | Extra per-line code | Spike S7 before v0.2 |
 

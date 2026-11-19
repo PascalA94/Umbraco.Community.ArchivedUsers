@@ -1,16 +1,43 @@
 <Project>
   <!--
-    Lock files describe the floor: they are generated and committed at the default values of
-    UmbracoTestVersion and UmbracoDemoVersion below, and the floor CI leg restores with locked mode.
-    A latest-minor leg overrides these two properties and restores unlocked
-    (force-evaluate, RestoreLockedMode=false); its rewritten lock files are never committed.
-    Nothing else overrides these properties. See docs/plan.md, Global Constraints P1.
+    One codebase, one branch: UmbracoMajor picks the line (18 by default, or 17). It sets the CMS range, the package
+    version, the UMBRACO_<line> constant, the per-line lock file (packages.<line>.lock.json) and obj/<line>, bin/<line>.
+
+    Lock files describe the floor: they are generated and committed at the default values of UmbracoTestVersion and
+    UmbracoDemoVersion below, and the floor CI leg restores with locked mode. A latest-minor leg overrides these two
+    properties and restores unlocked (force-evaluate, RestoreLockedMode=false); its rewritten lock files are never committed.
+    Nothing else overrides these properties. Floors never go below 17.8.0 / 18.3.0 (AU-02).
+    See docs/plan.md, Global Constraints P1.
   -->
   <PropertyGroup>
+    <UmbracoMajor Condition="'$(UmbracoMajor)' == ''">18</UmbracoMajor>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(UmbracoMajor)' == '17'">
+    <UmbracoFloor>17.8.0</UmbracoFloor>
+    <UmbracoNextMajor>18.0.0</UmbracoNextMajor>
+    <DefineConstants>$(DefineConstants);UMBRACO_17</DefineConstants>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(UmbracoMajor)' == '18'">
+    <UmbracoFloor>18.3.0</UmbracoFloor>
+    <UmbracoNextMajor>19.0.0</UmbracoNextMajor>
+    <DefineConstants>$(DefineConstants);UMBRACO_18</DefineConstants>
+  </PropertyGroup>
+  <Target Name="ValidateUmbracoMajor" BeforeTargets="Restore;Build;CoreCompile" Condition="'$(UmbracoMajor)' != '17' and '$(UmbracoMajor)' != '18'">
+    <Error Text="UmbracoMajor must be 17 or 18 (got '$(UmbracoMajor)')." />
+  </Target>
+  <PropertyGroup>
+    <PackageMinor>0</PackageMinor>
+    <PackagePatch>1</PackagePatch>
+    <PackageVersionSuffix></PackageVersionSuffix>
+    <UmbracoRange>[$(UmbracoFloor), $(UmbracoNextMajor))</UmbracoRange>
+    <UmbracoTestVersion Condition="'$(UmbracoTestVersion)' == ''">$(UmbracoFloor)</UmbracoTestVersion>
+    <UmbracoDemoVersion Condition="'$(UmbracoDemoVersion)' == ''">$(UmbracoFloor)</UmbracoDemoVersion>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
-    <UmbracoTestVersion Condition="'$(UmbracoTestVersion)' == ''">18.3.0</UmbracoTestVersion>
-    <UmbracoDemoVersion Condition="'$(UmbracoDemoVersion)' == ''">18.3.0</UmbracoDemoVersion>
-    <!-- UserKind.Api exists on 18; the v17 line removes this constant if 17.8 has no API users (plan P13a). -->
+    <NuGetLockFilePath>$(MSBuildProjectDirectory)/packages.$(UmbracoMajor).lock.json</NuGetLockFilePath>
+    <BaseIntermediateOutputPath>$(MSBuildProjectDirectory)/obj/$(UmbracoMajor)/</BaseIntermediateOutputPath>
+    <BaseOutputPath>$(MSBuildProjectDirectory)/bin/$(UmbracoMajor)/</BaseOutputPath>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj/**;bin/**</DefaultItemExcludes>
+    <!-- UserKind.Api exists on 17.8 and 18, so every line defines this (plan P13a). It is not a per-line define. -->
     <DefineConstants>$(DefineConstants);UMBRACO_HAS_API_USERS</DefineConstants>
   </PropertyGroup>
 </Project>

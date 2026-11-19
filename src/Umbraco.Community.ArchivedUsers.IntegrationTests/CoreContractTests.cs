@@ -166,6 +166,25 @@ public class CoreContractTests : UmbracoIntegrationTest
         Assert.That(result.Result.Items.Select(u => u.Key), Does.Not.Contain(Constants.Security.SuperUserKey));
     }
 
+#if UMBRACO_17
+    /// <summary>
+    /// The list filter matches core's action by name. 17 line: core's live action is Filter (release-17.8.0); if a
+    /// 17.x minor adds Filter2 as on 18, hiding stops, which is core behaviour, not a leak. This fails loudly so the
+    /// filter is updated (docs/design.md 11).
+    /// </summary>
+    [Test]
+    [Category("Tripwire")]
+    public void Filter_user_action_name_is_Filter()
+    {
+        Type controller = typeof(Umbraco.Cms.Api.Management.Controllers.User.Filter.FilterUserFilterController);
+        System.Reflection.MethodInfo? live = controller.GetMethod("Filter");
+        Assert.That(live, Is.Not.Null);
+        Assert.That(live!.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.HttpGetAttribute), false), Is.Not.Empty);
+        Assert.That(live.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.NonActionAttribute), false), Is.Empty);
+        Assert.That(controller.GetMethod("Filter2"), Is.Null);
+        Assert.That(ArchivedUsers.Web.Filters.ArchivedUserListFilter.BoundActionName, Is.EqualTo("Filter"));
+    }
+#else
     /// <summary>
     /// The list filter matches core's action by name. If core renames it (Filter2 becomes Filter in v20), hiding
     /// stops, which is core behaviour, not a leak. This fails loudly so the filter is updated (docs/design.md 11).
@@ -180,6 +199,7 @@ public class CoreContractTests : UmbracoIntegrationTest
         Assert.That(live!.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.HttpGetAttribute), false), Is.Not.Empty);
         Assert.That(controller.GetMethod("Filter")!.GetCustomAttributes(typeof(Microsoft.AspNetCore.Mvc.NonActionAttribute), false), Is.Not.Empty);
     }
+#endif
 
     // ---- S4 / U3 (recording) ----
 
