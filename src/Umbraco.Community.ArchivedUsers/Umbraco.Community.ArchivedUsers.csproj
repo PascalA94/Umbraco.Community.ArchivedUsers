@@ -32,6 +32,10 @@
     <Description Condition="'$(UmbracoMajor)' == '19'">$(Description) Built against Umbraco 19.0.0-rc1, not yet verified on 19 stable.</Description>
     <PackageTags Condition="'$(UmbracoMajor)' == '19'">$(PackageTags.Replace('umbraco-marketplace;',''))</PackageTags>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <!-- NU5104 (stable package, prerelease dependency) comes from the deliberate -0 upper bound of UmbracoRange in
+         Directory.Build.props, which keeps the next major's prereleases out. The lower bound is a stable floor, so
+         consumers still resolve the same version. -->
+    <NoWarn>$(NoWarn);NU5104</NoWarn>
   </PropertyGroup>
 
   <!-- Debugging support: Source Link plus a .snupkg symbol package -->

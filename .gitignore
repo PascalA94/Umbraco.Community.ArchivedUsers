@@ -54,3 +54,6 @@ CLAUDE.local.md
 # dotnet test --blame output (hang dumps)
 **/TestResults/
 tests/e2e/playwright-report/
+
+# Written by build/pin-sdk.sh in CI to pin the line's SDK; never committed.
+/global.json

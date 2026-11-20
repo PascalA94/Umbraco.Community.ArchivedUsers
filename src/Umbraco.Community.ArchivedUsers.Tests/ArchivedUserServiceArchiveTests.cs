@@ -224,19 +224,81 @@ public class ArchivedUserServiceArchiveTests
         await _f.StampRotator.Received(1).RotateAsync(targetKey);
     }
 
-    /// <summary>AU-02: a stamp failure is not fatal; core already revoked tokens and refuses disabled users.</summary>
+    /// <summary>
+    /// AU-02: on 19 the stamp rotation is what ends a live cookie session, so a failed rotation must not report Archived.
+    /// The user stays disabled (the safe state), no record is written, and a retry archives and rotates again.
+    /// </summary>
     [Fact]
-    public async Task Stamp_rotation_failure_logs_warning_and_still_archives()
+    public async Task Stamp_rotation_failure_returns_DisabledNotArchived_and_writes_no_record()
     {
         IUser admin = _f.AddAdmin(), target = _f.AddUser();
+        _f.StampRotator.RotateAsync(target.Key).ThrowsAsync(new InvalidOperationException("boom Secret Name"));
+
+        IReadOnlyList<UserArchiveResult> results = await Archive(admin, target);
+
+        Assert.Equal(ArchiveResultStatus.DisabledNotArchived, results[0].Status);
+        Assert.False(_f.Records.ContainsKey(target.Key));
+        Assert.Empty(_f.AuditRows);
+        Assert.Equal(1, _f.LogCount(LogLevel.Error));
+        Assert.Equal(0, _f.LogCount(LogLevel.Warning));
+        // Exception text can carry names or SQL parameters, so only the type is logged (A2-2).
+        Assert.DoesNotContain("boom", string.Join(" ", _f.LogText()));
+        await _f.Events.DidNotReceive().PublishAsync(Arg.Any<UserArchivedNotification>(), Arg.Any<CancellationToken>());
+    }
+
+    [Fact]
+    public async Task Stamp_rotation_failure_for_an_already_disabled_user_returns_DisabledNotArchived()
+    {
+        IUser admin = _f.AddAdmin(), target = _f.AddUser(state: UserState.Disabled);
         _f.StampRotator.RotateAsync(target.Key).ThrowsAsync(new InvalidOperationException("boom"));
 
         IReadOnlyList<UserArchiveResult> results = await Archive(admin, target);
 
+        Assert.Equal(ArchiveResultStatus.DisabledNotArchived, results[0].Status);
+        Assert.False(_f.Records.ContainsKey(target.Key));
+        Assert.Empty(_f.AuditRows);
+        Assert.Equal(1, _f.LogCount(LogLevel.Error));
+        await _f.UserService.DidNotReceiveWithAnyArgs().DisableAsync(default, default!);
+        await _f.Events.DidNotReceive().PublishAsync(Arg.Any<UserArchivedNotification>(), Arg.Any<CancellationToken>());
+    }
+
+    /// <summary>
+    /// The same accepted gap as a record failure after disable (design 7.2): the retry rotates again and archives the
+    /// now-disabled user with WasDisabledBefore = true, so a later unarchive keeps them disabled, which fails safe.
+    /// </summary>
+    [Fact]
+    public async Task Stamp_rotation_failure_then_retry_rotates_again_and_archives()
+    {
+        IUser admin = _f.AddAdmin(), target = _f.AddUser();
+        _f.StampRotator.RotateAsync(target.Key).ThrowsAsync(new InvalidOperationException("boom"));
+        await Archive(admin, target);
+        Guid adminKey = admin.Key, targetKey = target.Key;
+        await _f.UserService.Received(1).DisableAsync(adminKey, Only(targetKey));
+        _f.UserService.ClearReceivedCalls();
+        _f.StampRotator.ClearReceivedCalls();
+        _f.StampRotator.RotateAsync(target.Key).Returns(Task.CompletedTask);
+
+        IReadOnlyList<UserArchiveResult> results = await Archive(admin, target);
+
         Assert.Equal(ArchiveResultStatus.Archived, results[0].Status);
-        Assert.True(_f.Records.ContainsKey(target.Key));
-        Assert.Single(_f.AuditRows);
-        Assert.Equal(1, _f.LogCount(LogLevel.Warning));
+        await _f.StampRotator.Received(1).RotateAsync(targetKey);
+        await _f.UserService.DidNotReceiveWithAnyArgs().DisableAsync(default, default!);
+        Assert.True(_f.Records[targetKey].WasDisabledBefore);
+    }
+
+    /// <summary>Per user, never for the whole call: one failed rotation leaves the other users' results alone.</summary>
+    [Fact]
+    public async Task Stamp_rotation_failure_for_one_user_does_not_stop_the_others()
+    {
+        IUser admin = _f.AddAdmin(), broken = _f.AddUser("Broken"), fine = _f.AddUser("Fine");
+        _f.StampRotator.RotateAsync(broken.Key).ThrowsAsync(new InvalidOperationException("boom"));
+
+        IReadOnlyList<UserArchiveResult> results = await Archive(admin, broken, fine);
+
+        Assert.Equal(ArchiveResultStatus.DisabledNotArchived, results.Single(r => r.Id == broken.Key).Status);
+        Assert.Equal(ArchiveResultStatus.Archived, results.Single(r => r.Id == fine.Key).Status);
+        Assert.False(_f.Records.ContainsKey(broken.Key));
+        Assert.True(_f.Records.ContainsKey(fine.Key));
     }
 
     /// <summary>AU-07: a second record outside the package's tables, without reason or name.</summary>

@@ -162,8 +162,12 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
         }
 
         // Always rotate, also for a user disabled earlier through core: core's disable does not rotate the stamp (docs/spikes.md U3),
-        // so an existing session would otherwise outlive the archive.
-        await RotateStampAsync(key);
+        // so an existing session would otherwise outlive the archive. If rotation fails, do not report Archived: the user stays
+        // disabled (the safe state) and visible, no record is written, and a retry archives and rotates again (AU-02).
+        if (!await RotateStampAsync(key))
+        {
+            return (new UserArchiveResult(key, ArchiveResultStatus.DisabledNotArchived), null);
+        }
 
         var newRecord = new ArchivedUserRecord(key, _time.GetUtcNow().UtcDateTime, performer.Key, source, reason, wasDisabledBefore);
         try
@@ -276,18 +280,23 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
         return removed;
     }
 
-    private async Task RotateStampAsync(Guid key)
+    /// <summary>Rotates the user's security stamp; false when it failed (logged at Error, exception type only).</summary>
+    private async Task<bool> RotateStampAsync(Guid key)
     {
         try
         {
             await _stampRotator.RotateAsync(key);
+            return true;
         }
         catch (Exception ex)
         {
-            // AU-02: non-fatal, so a failed rotation does not undo the disable. On 17 and 18 core also revokes the user's tokens on
-            // disable and the authorize flow refuses disabled users. On 19 there are no tokens: the cookie session ends only when the
-            // stamp check rejects it, so this rotation is what ends an archived user's live session (ArchivedAdminSessionTests).
-            _logger.LogWarning(ex, "Security stamp rotation failed for {UserKey}", key);
+            // AU-02: a failed rotation does not undo the disable, but the archive stops there (DisabledNotArchived). On 17 and 18
+            // core also revokes the user's tokens on disable and the authorize flow refuses disabled users. On 19 there are no
+            // tokens: the cookie session ends only when the stamp check rejects it, so this rotation is what ends an archived
+            // user's live session (ArchivedAdminSessionTests), and reporting Archived after a failure would hide a live session.
+            // Exception text can carry names or SQL parameters, so only the type is logged (A2-2).
+            _logger.LogError("Security stamp rotation failed for {UserKey} ({ExceptionType}); the user is disabled but not archived", key, ex.GetType().Name);
+            return false;
         }
     }
 
