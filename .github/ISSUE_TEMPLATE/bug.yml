@@ -11,14 +11,14 @@ body:
     id: umbraco
     attributes:
       label: Umbraco version
-      description: The exact version, for example 18.3.0 (not "v18").
+      description: The exact version, for example 18.3.0 or 19.0.0-rc1 (not "v18").
     validations:
       required: true
   - type: input
     id: package
     attributes:
       label: Archived Users version
-      description: For example 18.0.0-alpha.2.
+      description: For example 18.0.1 or 19.0.0-rc.1.
     validations:
       required: true
   - type: dropdown

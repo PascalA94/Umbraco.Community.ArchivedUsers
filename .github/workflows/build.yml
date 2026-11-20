@@ -21,25 +21,32 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        line: ['17', '18']
+        line: ['17', '18', '19']
         # floor: locked restore at the committed lock files (UmbracoTestVersion / UmbracoDemoVersion defaults).
         # latest: newest <line>.x, restored unlocked; the lock files it rewrites are never committed (P1).
         leg: [floor, latest]
     env:
       # MSBuild reads these from the environment; empty values fall back to the floor in Directory.Build.props.
       UmbracoMajor: ${{ matrix.line }}
-      UmbracoTestVersion: ${{ matrix.leg == 'latest' && format('{0}.*', matrix.line) || '' }}
-      UmbracoDemoVersion: ${{ matrix.leg == 'latest' && format('{0}.*', matrix.line) || '' }}
+      # 19 has only release candidates: '19.*' finds no version (NU1102), '19.*-*' takes the newest prerelease.
+      # Back to '19.*' once 19.0.0 ships.
+      UmbracoTestVersion: ${{ matrix.leg == 'latest' && (matrix.line == '19' && '19.*-*' || format('{0}.*', matrix.line)) || '' }}
+      UmbracoDemoVersion: ${{ matrix.leg == 'latest' && (matrix.line == '19' && '19.*-*' || format('{0}.*', matrix.line)) || '' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: '10.x'
+          # 17 and 18 build on .NET 10; 19 targets net11.0 only.
+          dotnet-version: ${{ matrix.line == '19' && '11.x' || '10.x' }}
           # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
           cache: true
           cache-dependency-path: '**/packages.*.lock.json'
+
+      # Hosted images ship SDK 11, and with no global.json `dotnet` would pick it for 17 and 18 too. Pin the line's SDK.
+      - name: Pin the SDK to the line
+        run: bash build/pin-sdk.sh ${{ matrix.line == '19' && '11' || '10' }}
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -80,8 +87,8 @@ jobs:
             grep -rqE --include='*.js' "[\"']@umbraco-cms/backoffice/" src/Umbraco.Community.ArchivedUsers/wwwroot/
           fi
 
-      # One bundle serves both lines (built against ^17.8.0, docs/spikes.md "One client bundle"). Type-check the
-      # source against the 18 line too, in a temp copy, so an 18-only break shows on the PR.
+      # One bundle serves every line (built against ^17.8.0, docs/spikes.md "One client bundle"). Type-check the
+      # source against the 18 and 19 lines too, in a temp copy, so a line-only break shows on the PR.
       - name: Type-check against @umbraco-cms/backoffice 18
         run: |
           tmp="$(mktemp -d)"
@@ -90,6 +97,17 @@ jobs:
           rm -rf node_modules
           npm ci --ignore-scripts
           npm i --no-save --ignore-scripts "@umbraco-cms/backoffice@^18.3.0"
+          npx tsc --noEmit
+
+      # Exact version: the 19 release candidate has no npm dist-tag (latest is still 17.x). Move to 19.0.0 at stable.
+      - name: Type-check against @umbraco-cms/backoffice 19
+        run: |
+          tmp="$(mktemp -d)"
+          cp -R "$CLIENT_DIR/." "$tmp/"
+          cd "$tmp"
+          rm -rf node_modules
+          npm ci --ignore-scripts
+          npm i --no-save --ignore-scripts --save-exact "@umbraco-cms/backoffice@19.0.0-rc1"
           npx tsc --noEmit
 
       - name: Restore (locked)
@@ -140,12 +158,16 @@ jobs:
         --config=./osv-scanner.toml
         -L packages.lock.json:src/Umbraco.Community.ArchivedUsers/packages.17.lock.json
         -L packages.lock.json:src/Umbraco.Community.ArchivedUsers/packages.18.lock.json
+        -L packages.lock.json:src/Umbraco.Community.ArchivedUsers/packages.19.lock.json
         -L packages.lock.json:src/Umbraco.Community.ArchivedUsers.Tests/packages.17.lock.json
         -L packages.lock.json:src/Umbraco.Community.ArchivedUsers.Tests/packages.18.lock.json
+        -L packages.lock.json:src/Umbraco.Community.ArchivedUsers.Tests/packages.19.lock.json
         -L packages.lock.json:src/Umbraco.Community.ArchivedUsers.IntegrationTests/packages.17.lock.json
         -L packages.lock.json:src/Umbraco.Community.ArchivedUsers.IntegrationTests/packages.18.lock.json
+        -L packages.lock.json:src/Umbraco.Community.ArchivedUsers.IntegrationTests/packages.19.lock.json
         -L packages.lock.json:demo/Umbraco.Community.ArchivedUsers.DemoSite/packages.17.lock.json
         -L packages.lock.json:demo/Umbraco.Community.ArchivedUsers.DemoSite/packages.18.lock.json
+        -L packages.lock.json:demo/Umbraco.Community.ArchivedUsers.DemoSite/packages.19.lock.json
         --recursive
         ./
 
@@ -156,7 +178,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        line: ['17', '18']
+        line: ['17', '18', '19']
     env:
       UmbracoMajor: ${{ matrix.line }}
     steps:
@@ -164,10 +186,15 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: '10.x'
+          # 17 and 18 build on .NET 10; 19 targets net11.0 only.
+          dotnet-version: ${{ matrix.line == '19' && '11.x' || '10.x' }}
           # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
           cache: true
           cache-dependency-path: '**/packages.*.lock.json'
+
+      # Hosted images ship SDK 11, and with no global.json `dotnet` would pick it for 17 and 18 too. Pin the line's SDK.
+      - name: Pin the SDK to the line
+        run: bash build/pin-sdk.sh ${{ matrix.line == '19' && '11' || '10' }}
       - name: Restore (locked)
         run: dotnet restore src/Umbraco.Community.ArchivedUsers.slnx --locked-mode
       - name: Vulnerable packages (direct and transitive)

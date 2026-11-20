@@ -94,7 +94,7 @@ Umbraco moves fast. Re-check the [verified] facts against the latest 17.x and 18
 
 ### Versions
 - Umbraco 17 (LTS) and 18. Two release lines, not multi-targeted. [verified reasons]
-  - Both majors target `net10.0`, so TFM multi-targeting can't split them.
+  - 17 and 18 both target `net10.0`, so TFM multi-targeting can't split them. (19 targets `net11.0`, picked by the same `UmbracoMajor` switch.)
   - `/filter/user` action: `Filter` on v17, `Filter2` (adds `userKinds`) on v18. `Filter` is `[NonAction]` on v18, due for removal in v20.
   - OpenAPI: Swashbuckle on v17, `Microsoft.AspNetCore.OpenApi` on v18.
   - `@umbraco-cms/backoffice` typings differ (17.x vs 18.x).

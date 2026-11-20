@@ -30,8 +30,9 @@ namespace Umbraco.Community.ArchivedUsers.IntegrationTests;
 
 /// <summary>
 /// Base for HTTP tests against the real Management API pipeline (docs/spikes.md S0).
-/// Authentication is real: password login, then the authorization-code-with-PKCE flow, exactly as the
-/// backoffice does it. Nothing is faked, so the policies under test are the ones a site runs.
+/// Authentication is real and follows the backoffice of each line: on 17 and 18 password login, then the
+/// authorization-code-with-PKCE flow; on 19 password login only, because the UMB_UCONTEXT cookie it sets is the session.
+/// Nothing is faked, so the policies under test are the ones a site runs.
 /// </summary>
 [UmbracoTest(Database = UmbracoTestOptions.Database.NewSchemaPerTest, Boot = true)]
 public abstract class ApiTestBase : UmbracoTestServerTestBase
@@ -99,14 +100,14 @@ public abstract class ApiTestBase : UmbracoTestServerTestBase
         BaseAddress = new Uri("https://localhost/", UriKind.Absolute),
     });
 
-    /// <summary>Returns a client authenticated as <paramref name="user"/> through login and PKCE.</summary>
+    /// <summary>Returns a client authenticated as <paramref name="user"/> through login (and PKCE on 17 and 18).</summary>
     protected async Task<HttpClient> CreateAuthenticatedClientAsync(IUser user)
     {
         var (client, _) = await AuthenticateAsync(user);
         return client;
     }
 
-    /// <summary>Authenticates and also returns the raw token response (access and refresh token cookies).</summary>
+    /// <summary>Authenticates and also returns the raw token response (access and refresh token cookies); on 19, the login response.</summary>
     protected async Task<(HttpClient Client, HttpResponseMessage TokenResponse)> AuthenticateAsync(IUser user)
     {
         await SetPasswordAsync(user);
@@ -119,6 +120,26 @@ public abstract class ApiTestBase : UmbracoTestServerTestBase
         });
         client.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
+#if UMBRACO_19
+        // 19 is cookie-only: the login sets UMB_UCONTEXT and the Management API accepts that cookie alone. The client
+        // has HandleCookies = true, so the cookie rides along on later calls. No Authorization header on purpose: one
+        // would hide whether the cookie alone authenticates, which the F2 and F3 security tests depend on.
+        using (IServiceScope appScope = Services.CreateScope())
+        {
+            await appScope.ServiceProvider.GetRequiredService<IBackOfficeApplicationManager>()
+                .EnsureBackOfficeApplicationAsync([client.BaseAddress!]);
+        }
+
+        HttpResponseMessage login = await client.PostAsync(
+            ManagementApi + "security/back-office/login",
+            JsonContent.Create(new LoginRequestModel { Username = user.Username, Password = TestUsers.Password }));
+        if (login.StatusCode != HttpStatusCode.OK)
+        {
+            throw new InvalidOperationException($"Login failed: {(int)login.StatusCode} {await login.Content.ReadAsStringAsync()}");
+        }
+
+        return (client, login);
+#else
         // Mirrors BackOfficeApplicationManager's (internal) backoffice descriptor: public client
         // "umbraco-back-office", redirect = host + Umbraco:CMS:Security:AuthorizeCallbackPathName.
         using IServiceScope serviceScope = Services.CreateScope();
@@ -167,6 +188,7 @@ public abstract class ApiTestBase : UmbracoTestServerTestBase
         client.DefaultRequestHeaders.Add("Cookie", $"__Host-umbAccessToken={accessToken}");
         client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", "[redacted]");
         return (client, token);
+#endif
     }
 
     protected static string? ReadCookie(HttpResponseMessage response, string name)

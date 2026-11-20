@@ -10,7 +10,7 @@ Issues and pull requests are welcome. For anything bigger than a small fix, open
 
 ## Build and test
 
-You need the .NET 10 SDK and Node (the version in `src/Umbraco.Community.ArchivedUsers/Client/.nvmrc`).
+You need the .NET 10 SDK (17 and 18) or the .NET 11 SDK (19) and Node (the version in `src/Umbraco.Community.ArchivedUsers/Client/.nvmrc`).
 
 ```bash
 dotnet restore src/Umbraco.Community.ArchivedUsers.slnx --locked-mode

@@ -159,9 +159,11 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
             {
                 return (new UserArchiveResult(key, ArchiveResultStatus.CoreRefused, status), null);
             }
-
-            await RotateStampAsync(key);
         }
+
+        // Always rotate, also for a user disabled earlier through core: core's disable does not rotate the stamp (docs/spikes.md U3),
+        // so an existing session would otherwise outlive the archive.
+        await RotateStampAsync(key);
 
         var newRecord = new ArchivedUserRecord(key, _time.GetUtcNow().UtcDateTime, performer.Key, source, reason, wasDisabledBefore);
         try
@@ -282,8 +284,9 @@ internal sealed partial class ArchivedUserService : IArchivedUserService
         }
         catch (Exception ex)
         {
-            // AU-02: non-fatal. Core already revoked the user's tokens on disable, and from the 17.8.0 / 18.3.0
-            // floors the authorize flow refuses disabled users; the stamp is the third layer.
+            // AU-02: non-fatal, so a failed rotation does not undo the disable. On 17 and 18 core also revokes the user's tokens on
+            // disable and the authorize flow refuses disabled users. On 19 there are no tokens: the cookie session ends only when the
+            // stamp check rejects it, so this rotation is what ends an archived user's live session (ArchivedAdminSessionTests).
             _logger.LogWarning(ex, "Security stamp rotation failed for {UserKey}", key);
         }
     }

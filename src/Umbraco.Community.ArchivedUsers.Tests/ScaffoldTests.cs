@@ -11,6 +11,8 @@ public class ScaffoldTests
     {
 #if UMBRACO_17
         const int expected = 17;
+#elif UMBRACO_19
+        const int expected = 19;
 #else
         const int expected = 18;
 #endif

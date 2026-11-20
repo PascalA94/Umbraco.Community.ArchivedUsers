@@ -160,3 +160,12 @@ Pass (closed) when: Every surface that calls `/filter/user` is listed.
 - **Built JavaScript:** the built `archived-users.api-*.js` differs between the two branches only in the unused default `baseUrl` and `e?.client` versus `e.client`. `Client/src/api/archived-users.api.ts` always passes `{ client, ... }`, so neither is reachable. Other chunks differ only in the hash of their import of the api chunk.
 - **Type-check and tests:** `@umbraco-cms/backoffice@17.8.0` gives `tsc --noEmit` clean and vitest 48 of 48 (re-run on the fold branch, 18 Nov 2026).
 - **Fallback if the rule ever fails:** one `wwwroot` per line, swapped in by `build/pack.sh`, and the OpenAPI document path from the line (`swagger/archived-users/swagger.json` on 17, `openapi/archived-users.json` on 18).
+
+## 19.0.0-rc1 observations (19 line, 2026-11-20, .NET 11)
+
+- **Login:** on 19, `POST /umbraco/management/api/v1/security/back-office/login` sets the `UMB_UCONTEXT` cookie (secure, samesite=strict, httponly), and the Management API accepts that cookie alone. The PKCE flow no longer sets `__Host-umbAccessToken`. The integration tests log in this way on 19 (`ApiTestBase`, `#if UMBRACO_19`) and send no `Authorization` header, so the cookie is what authenticates.
+- **Content types (F2):** `text/plain` and empty-body POSTs to `archive`, `unarchive` and `clean-up` get 415 and change nothing, on 17, 18 and 19 (`Text_plain_and_empty_body_posts_return_415_and_change_nothing`). Only the JSON input formatter binds the request bodies.
+- **Live sessions (F3):** with the security stamp validated on every request, disabling an admin alone leaves the old cookie session at 403 (core's approval check); rotating the stamp gives 401. A user disabled through core first and archived later kept the old session, because core's disable does not rotate the stamp (U3) and archive rotated it only when the package itself disabled the user.
+- **Decision:** archive now rotates the stamp for every target, already disabled or not (`ArchivedUserService`). This applies to every line because `Core/` is shared. `ArchivedAdminSessionTests` (19 only) pins 401 after archive for both cases; with the rotation removed both tests get 403.
+- **Tripwires:** all four pass on 19, including `Filter_user_action_name_is_Filter2`.
+- **Client:** the one bundle type-checks clean against `@umbraco-cms/backoffice@19.0.0-rc1`, and vitest passes 48 of 48 against it.

@@ -4,6 +4,7 @@
 
 | Package version | Umbraco | Supported |
 |---|---|---|
+| 19.x | 19 (19.0.0-rc1 or later, release candidate) | Release candidate |
 | 18.x | 18 (18.3.0 or later) | Yes |
 | 17.x | 17 (17.8.0 or later) | Yes |
 
