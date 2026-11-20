@@ -1832,8 +1832,8 @@
       "umbraco.community.archivedusers": {
         "type": "Project",
         "dependencies": {
-          "Umbraco.Cms.Api.Management": "[17.8.0, 18.0.0)",
-          "Umbraco.Cms.Web.Common": "[17.8.0, 18.0.0)"
+          "Umbraco.Cms.Api.Management": "[17.8.0, 18.0.0-0)",
+          "Umbraco.Cms.Web.Common": "[17.8.0, 18.0.0-0)"
         }
       }
     }

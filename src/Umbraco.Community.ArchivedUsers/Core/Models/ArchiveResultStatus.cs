@@ -22,8 +22,9 @@ public enum ArchiveResultStatus
     CoreRefused,
 
     /// <summary>
-    /// The user was disabled, but the archive record could not be saved (review C-7). Safe: the user is disabled and
-    /// still listed. Archive again to finish; the retry records them as already disabled.
+    /// The user is disabled but not archived: the archive record could not be saved (review C-7), or their security
+    /// stamp could not be rotated (AU-02). Safe: the user is disabled and still listed. Archive again to finish; the retry
+    /// rotates again and records them as already disabled. If it keeps failing, check the logs rather than retrying.
     /// </summary>
     DisabledNotArchived,
 

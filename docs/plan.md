@@ -404,8 +404,8 @@ Follow "Milestone reviews" (above the file structure). Nothing in M1 starts unti
   - `Archive_superuser_target_by_admin_returns_NotPermitted` (AU-01, T1): admin performer, `SuperUserKey` target; core not called. (A superuser archiving itself is `Self`.)
   - `Archive_by_disabled_or_missing_performer_returns_NotPermitted_for_every_key` (P9; `[Theory]`, two cases): performer `UserState == Disabled`, then performer not found; keys {editor, admin} → both `NotPermitted`; `DisableAsync`, `TryInsertAsync` and `AuthorizeAccessAsync` not received.
   - `Archive_rotates_security_stamp_after_disable` (AU-02, T4c): `UpdateSecurityStampAsync` received once, after `DisableAsync`, for the target.
-  - `Archive_already_disabled_user_does_not_rotate_stamp`.
-  - `Stamp_rotation_failure_logs_warning_and_still_archives` (AU-02): rotation throws → result `Archived`, record and audit written, one Warning logged.
+  - `Archive_already_disabled_user_still_rotates_stamp` (superseded the original "does not rotate" test for the 19 line: core's disable does not rotate, so every archive target is rotated).
+  - `Stamp_rotation_failure_returns_DisabledNotArchived_and_writes_no_record` (AU-02, superseded the original Warning-and-Archived test for the 19 line): rotation throws → result `DisabledNotArchived`, no record or audit row, one Error with the exception type only.
   - `Archive_writes_one_core_audit_entry` (AU-07): `IAuditService` write received once with the S4 call, comment containing action and source and **not** the reason or name.
   - `Logs_never_contain_reason_or_name` (AU-09, AU-12): run a cancel, a core refusal and a scope failure with reason `"secret-reason"` and name `"Secret Name"`; no captured log message or rendered template contains either string; the user key appears.
   - `Core_refusal_returns_CoreRefused_with_status_and_writes_nothing`.
@@ -424,7 +424,7 @@ Follow "Milestone reviews" (above the file structure). Nothing in M1 starts unti
   - Status checks, in this order: NotFound (`NotPermitted` when `!UserVisibility.IsAdmin(performer)`, AU-16); Self; NotPermitted (superuser target, or `AuthorizeAccessAsync(performer, { key })` fails, or `!CanSee`, AU-01; why-comment "`IUserService` does not authorise; see design 4 and AU-01"); AlreadyArchived (record and user disabled); stale record reconcile (record and user enabled, AU-03) in a private method that Task 10's `ReconcileAsync` also calls; Invited.
   - Publish the cancelable `UserArchivingNotification` with `IEventAggregator.PublishCancelableAsync`; on cancel return `Cancelled` with the first event message.
   - Call `DisableAsync` one user at a time, only if `UserState != Disabled` (why-comment: core returns one status per call). On core failure return `CoreRefused` with the status.
-  - After a successful disable, rotate the stamp by the S4 route; on failure log a Warning and carry on (why-comment: AU-02, and why a failure is non-fatal).
+  - Rotate the stamp by the S4 route for every target (also one disabled earlier through core); on failure log an Error and return `DisabledNotArchived` without a record (why-comment: AU-02; on 19 the rotation is what ends a live session).
   - In one `ICoreScope`: `TryInsertAsync` the record and `InsertAuditAsync` the row, then `Complete()`. A `false` from `TryInsertAsync` → `AlreadyArchived` plus a Warning. If the scope throws after a successful disable, log one Error ("disabled but not archived", user key only) and return `CoreRefused` with no core status (P10).
   - After the scope: write the core audit entry; publish `UserArchivedNotification`; release the lock.
 - [ ] **Step 4: Run.** Same command as Step 2. Expected: "Failed: 0" and "Passed: 29" (26 service results, the `[Theory]` counting twice, plus 3 lock tests).

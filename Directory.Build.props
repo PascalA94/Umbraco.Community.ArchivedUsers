@@ -45,7 +45,10 @@
     <PackageMinor>0</PackageMinor>
     <PackagePatch>1</PackagePatch>
     <PackageVersionSuffix></PackageVersionSuffix>
-    <UmbracoRange>[$(UmbracoFloor), $(UmbracoNextMajor))</UmbracoRange>
+    <!-- The -0 upper bound excludes the next major's prereleases: NuGet orders 19.0.0-rc1 below 19.0.0, so a plain
+         [18.3.0, 19.0.0) would let an Umbraco 19 release-candidate site install the 18.x package silently. With -0 NuGet
+         warns (NU1608) instead; it is a warning, not a block, unless the site treats warnings as errors. -->
+    <UmbracoRange>[$(UmbracoFloor), $(UmbracoNextMajor)-0)</UmbracoRange>
     <UmbracoTestVersion Condition="'$(UmbracoTestVersion)' == ''">$(UmbracoFloor)</UmbracoTestVersion>
     <UmbracoDemoVersion Condition="'$(UmbracoDemoVersion)' == ''">$(UmbracoFloor)</UmbracoDemoVersion>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>
