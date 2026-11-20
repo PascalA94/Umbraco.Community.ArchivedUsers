@@ -21,6 +21,29 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Two tag shapes. release/<minor>.<patch>[-suffix] (two numeric parts) packs the legacy lines, 17 and 18, at the
+      # version in Directory.Build.props. release/19.<minor>.<patch>[-suffix] (three, starting 19.) packs 19 only, at
+      # the tag's version, for example release/19.0.0-rc.1. The shapes cannot clash, and both match the release/* trigger.
+      - name: Read the tag
+        id: tag
+        run: |
+          set -euo pipefail
+          tag="$GITHUB_REF_NAME"
+          sfx='(-[0-9A-Za-z][0-9A-Za-z.-]*)?'
+          if [[ "$tag" =~ ^release/19\.[0-9]+\.[0-9]+${sfx}$ ]]; then
+            lines="19"; pack_version="${tag#release/}"; sdk="11.x"
+          elif [[ "$tag" =~ ^release/[0-9]+\.[0-9]+${sfx}$ ]]; then
+            lines="$(grep -E '^[0-9]+$' eng/lines.txt | grep -vx 19 | tr '\n' ' ')"; pack_version=""; sdk="10.x"
+          else
+            echo "Unexpected tag $tag" >&2; exit 1
+          fi
+          {
+            echo "lines=$lines"
+            echo "pack_version=$pack_version"
+            echo "expected=$(wc -w <<<"$lines" | tr -d ' ')"
+            echo "sdk=$sdk"
+          } >> "$GITHUB_OUTPUT"
+
       # One branch carries every line, so a tag publishes only from main (review C-13).
       - name: Tag is on main
         run: git merge-base --is-ancestor "$GITHUB_SHA" origin/main
@@ -48,14 +71,21 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: '10.x'
+          # 11.x for a 19 tag (net11.0 only), 10.x for the 17 and 18 lines.
+          dotnet-version: ${{ steps.tag.outputs.sdk }}
 
-      # Every line in eng/lines.txt is restored (locked), built, tested and checked for known advisories before anything
+      # Hosted images ship SDK 11, and with no global.json `dotnet` would pick it for 17 and 18 too. Pin the line's SDK.
+      - name: Pin the SDK to the line
+        run: bash build/pin-sdk.sh ${{ steps.tag.outputs.sdk == '11.x' && '11' || '10' }}
+
+      # Every line the tag selects is restored (locked), built, tested and checked for known advisories before anything
       # is packed. The advisory gate (T21) reads parsed output, never the exit code.
       - name: Build, test and audit the lines
+        env:
+          LINES: ${{ steps.tag.outputs.lines }}
         run: |
           # Lines come from a word list, not `while read < file`: a dotnet child reading stdin would otherwise end the loop early.
-          for line in $(cat eng/lines.txt); do
+          for line in $LINES; do
             echo "== Umbraco $line"
             dotnet restore src/Umbraco.Community.ArchivedUsers.slnx "-p:UmbracoMajor=$line" --locked-mode
             dotnet build src/Umbraco.Community.ArchivedUsers.slnx --no-restore -c Release "-p:UmbracoMajor=$line"
@@ -66,17 +96,26 @@ jobs:
       # One nupkg per line, each carrying wwwroot. Only the package is packed: tests and the demo site are
       # IsPackable=false. pack.sh stamps the line's version into the manifest and restores it afterwards.
       - name: Pack
+        env:
+          LINES: ${{ steps.tag.outputs.lines }}
+          PACK_VERSION: ${{ steps.tag.outputs.pack_version }}
         run: bash build/pack.sh ./artifacts
 
       - name: Packages contain the client bundle
+        env:
+          LINES: ${{ steps.tag.outputs.lines }}
+          PACK_VERSION: ${{ steps.tag.outputs.pack_version }}
+          EXPECTED: ${{ steps.tag.outputs.expected }}
         run: |
           shopt -s nullglob
           packs=(./artifacts/*.nupkg)
-          [ "${#packs[@]}" -eq 2 ] || { echo "expected 2 nupkgs, found ${#packs[@]}" >&2; exit 1; }
-          # The version comes from Directory.Build.props; the tag was checked against it, so the file names must match the tag.
+          [ "${#packs[@]}" -eq "$EXPECTED" ] || { echo "expected $EXPECTED nupkgs, found ${#packs[@]}" >&2; exit 1; }
+          # Legacy tags: the version comes from Directory.Build.props, which the tag was checked against, so the file names
+          # must be <line>.<tag>. A 19 tag carries the whole version.
           want="${GITHUB_REF_NAME#release/}"
-          for line in $(cat eng/lines.txt); do
-            [ -f "./artifacts/Umbraco.Community.ArchivedUsers.$line.$want.nupkg" ] || { echo "missing the $line.$want nupkg" >&2; exit 1; }
+          for line in $LINES; do
+            if [ -n "$PACK_VERSION" ]; then name="$PACK_VERSION"; else name="$line.$want"; fi
+            [ -f "./artifacts/Umbraco.Community.ArchivedUsers.$name.nupkg" ] || { echo "missing the $name nupkg" >&2; exit 1; }
           done
           for f in "${packs[@]}"; do
             unzip -l "$f" | grep -q 'staticwebassets/index.js' || { echo "$f has no staticwebassets/index.js" >&2; exit 1; }

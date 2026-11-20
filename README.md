@@ -4,13 +4,15 @@
 [![NuGet downloads](https://img.shields.io/nuget/dt/Umbraco.Community.ArchivedUsers)](https://www.nuget.org/packages/Umbraco.Community.ArchivedUsers)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](https://github.com/PascalA94/Umbraco.Community.ArchivedUsers/blob/main/LICENSE)
 
-A community package, not made or supported by Umbraco HQ. Requires Umbraco 18.3+ (package 18.x) or Umbraco 17.8+ (package 17.x), on .NET 10.
+A community package, not made or supported by Umbraco HQ. Requires Umbraco 19.0.0-rc1+ (package 19.x, release candidate, on .NET 11), Umbraco 18.3+ (package 18.x) or Umbraco 17.8+ (package 17.x), both on .NET 10.
 
 **Tidy away ex-staff and old agency users.** Archive leavers so they drop out of the Users list and user pickers, without deleting them. Archiving disables them, and every archive records who, whom, when and why. Archived users get their own **Archived users** area under Users.
 
 Umbraco won't delete a user who has ever logged in, so long-lived sites fill up with disabled ex-staff and ex-agency accounts. This package hides them without deleting anything.
 
 > **Stable from 18.0.0.** Settings, API and aliases are stable within each Umbraco major: no breaking changes until the next major version.
+
+> **19.0.0-rc.N is a release candidate.** Built against Umbraco 19.0.0-rc1, not yet verified on 19 stable.
 
 ![The Archived users view in the Users section, listing each archived user with their email, when they were archived, who archived them, the reason and their last login](https://raw.githubusercontent.com/PascalA94/Umbraco.Community.ArchivedUsers/main/assets/screenshots/screenshot-01-archived-users.png)
 
@@ -97,7 +99,7 @@ Archived users are hidden from every screen that lists users through Umbraco's `
 ## Security notes
 
 - **Hiding is not access control.** Archiving disables the user; hiding is a convenience. If the package's hiding fails for any reason, Umbraco's own list is returned.
-- Archiving ends the user's sessions: Umbraco revokes their tokens on disable, refuses disabled users at sign-in (Umbraco 17.8.0 / 18.3.0 and later), and the package also rotates the security stamp. Access tokens are validated against the token store, so an archived user's last access token stops working at once.
+- Archiving ends the user's sessions: Umbraco revokes their tokens on disable, refuses disabled users at sign-in (Umbraco 17.8.0 / 18.3.0 and later), and the package also rotates the security stamp. Access tokens are validated against the token store, so an archived user's last access token stops working at once. Umbraco 19 has no backoffice tokens: archiving rotates the security stamp, and the user's old session is refused at its next security stamp check (on every request by default; with concurrent logins allowed, up to Umbraco's validation interval later).
 - An archived (disabled) user can't archive anyone, even with a token that is somehow still live. Two admins archiving each other at the same instant could still both end up disabled. The superuser can never be archived by the package, so **keep the superuser enabled as your recovery account.**
 - Umbraco does not revoke the superuser's tokens on disable; the package never targets the superuser.
 - Don't relax `Umbraco:CMS:Security:BackOfficeTokenCookie:SameSite`; the backoffice's CSRF protection relies on it.
@@ -123,12 +125,13 @@ Remove the package. Its tables stay in the database; drop `archivedUsersUser` an
 
 | Package | Umbraco | Line |
 |---|---|---|
+| 19.x (release candidate) | 19.0.0-rc1 to 19.x (`[19.0.0-rc1, 20.0.0)`) | `main` |
 | 18.x | 18.3.0 to 18.x (`[18.3.0, 19.0.0)`) | `main` |
 | 17.x | 17.8.0 to 17.x (`[17.8.0, 18.0.0)`) | `main` |
 
-On Umbraco 17, install a 17.x version: `dotnet add package Umbraco.Community.ArchivedUsers --version "17.*"`. A plain install picks the newest 18.x, which needs Umbraco 18.
+A plain install picks the newest stable version, which is 18.x until 19.0.0 ships. On Umbraco 19, install the release candidate: `dotnet add package Umbraco.Community.ArchivedUsers --version "19.0.0-rc.*"` (or pass `--prerelease`). On Umbraco 17, install a 17.x version: `--version "17.*"`.
 
-17.8.0 and 18.3.0 are the first releases where Umbraco refuses disabled users at sign-in, and they include the 27 October 2026 security fixes.
+17.8.0 and 18.3.0 are the first releases where Umbraco refuses disabled users at sign-in, and they include the 27 October 2026 security fixes. For 19, the floor is 19.0.0-rc1 until 19.0.0 ships.
 
 ## Contributing
 

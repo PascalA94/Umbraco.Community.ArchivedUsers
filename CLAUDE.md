@@ -6,16 +6,17 @@
 
 ## Lines and versioning
 
-- **One branch, two lines.** `UmbracoMajor` (`17` or `18`, default `18`, set as a property or an environment variable) picks the CMS range (`Umbraco.Cms.Web.Common` and `Umbraco.Cms.Api.Management` `[17.8.0, 18.0.0)` or `[18.3.0, 19.0.0)`), the package version, the `UMBRACO_17` / `UMBRACO_18` constants, and its own `packages.<line>.lock.json`, `obj/<line>` and `bin/<line>`. `eng/lines.txt` lists the lines; `build/test.sh` runs the suites once per line. Stable from 18.0.0: no breaking changes within a major.
-- **One client bundle serves both lines.** `@umbraco-cms/backoffice` is a Vite external, the committed `wwwroot/` is built against `^17.8.0`, and CI type-checks the source against `^18.3.0` (`docs/spikes.md`, "One client bundle"). Split into two bundles only if a line ever needs a different request payload.
-- The package version is `<UmbracoMajor>.<PackageMinor>.<PackagePatch>[-suffix]` from `Directory.Build.props`. Client version files stay `0.0.0`; the pack step stamps the line's version into the nupkg's manifest.
-- `Core/` is shared by every line; per-line differences live in `Web/`, `Client/`, tests behind `#if UMBRACO_17`, and build files only. `v17` is frozen history: nothing merges to it.
+- **One branch, three lines.** `UmbracoMajor` (`17`, `18` or `19`, default `18`, set as a property or an environment variable) picks the CMS range (`Umbraco.Cms.Web.Common` and `Umbraco.Cms.Api.Management` `[17.8.0, 18.0.0)`, `[18.3.0, 19.0.0)` or `[19.0.0-rc1, 20.0.0)`), the target framework (`net10.0` for 17 and 18, `net11.0` for 19, so line 19 needs the .NET 11 SDK), the package version, the `UMBRACO_17` / `UMBRACO_18` / `UMBRACO_19` constant, and its own `packages.<line>.lock.json`, `obj/<line>` and `bin/<line>`. 19 defines `UMBRACO_19` only, so every `#if UMBRACO_17 ... #else` takes its 18 arm on 19: a new `#else` that means "18" runs on 19 too. `eng/lines.txt` lists the lines; `build/test.sh` runs the suites once per line. Stable from 18.0.0: no breaking changes within a major.
+- **One client bundle serves every line.** `@umbraco-cms/backoffice` is a Vite external, the committed `wwwroot/` is built against `^17.8.0`, and CI type-checks the source against `^18.3.0` and `19.0.0-rc1` (exact: the RC has no npm tag) (`docs/spikes.md`, "One client bundle"). Split into two bundles only if a line ever needs a different request payload.
+- The package version is `<UmbracoMajor>.<PackageMinor>.<PackagePatch>[-suffix]` from `Directory.Build.props` for 17 and 18; a 19 tag carries its whole version (`release/19.0.0-rc.1`). Client version files stay `0.0.0`; the pack step stamps the line's version into the nupkg's manifest.
+- `Core/` is shared by every line; per-line differences live in `Web/`, `Client/`, tests behind `#if UMBRACO_17` / `#if UMBRACO_19`, and build files only. `v17` is frozen history: nothing merges to it.
 
 ## Commands
 
 ```bash
 # Backend: restore at the floor (lock files), build, test (unit + integration on SQLite). Default line is 18.
-bash build/test.sh                 # every line in eng/lines.txt; or: bash build/test.sh 17
+bash build/test.sh                 # every line in eng/lines.txt; or: bash build/test.sh 17 18
+# Line 19 targets net11.0: put the .NET 11 SDK first on PATH for it (bash build/test.sh 19, LINES=19 PACK_VERSION=19.0.0-rc.1 bash build/pack.sh)
 dotnet restore src/Umbraco.Community.ArchivedUsers.slnx -p:UmbracoMajor=17 --locked-mode   # one line, locked
 dotnet build src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-restore -p:UmbracoMajor=17
 dotnet test src/Umbraco.Community.ArchivedUsers.slnx -c Release --no-build -p:UmbracoMajor=17
@@ -57,19 +58,20 @@ bash build/check-vulnerable.sh
 - **A disabled or locked-out performer may change nobody** (`UserStateRules.CanPerform`, P9). "Disabled" means `!IsApproved` (`UserStateRules.IsDisabled`), never `UserState == Disabled`: core reports `LockedOut` before `Disabled`.
 - Archive: disable through `IUserService.DisableAsync` one user at a time, rotate the security stamp (AU-02), then record + audit row in one scope. Unarchive deletes the record **before** enabling, inside one scope, so the `UserSaved` handler writes no duplicate row.
 - The per-user `ArchiveUserLocks` lock (DI singleton, striped, not re-entrant) is held from the state read to the record write. Archived/Unarchived notifications are published **after** the lock is released.
-- The list filter hides only archived **and** disabled users (AU-03), acts only on core's `FilterUserFilterController` / the line's bound action (`Filter` on 17, `Filter2` on 18) / GET (AU-10), and fails open to core's response on any exception. Hide switch off = core behaviour exactly.
+- The list filter hides only archived **and** disabled users (AU-03), acts only on core's `FilterUserFilterController` / the line's bound action (`Filter` on 17, `Filter2` on 18 and 19) / GET (AU-10), and fails open to core's response on any exception. Hide switch off = core behaviour exactly.
 - GET never writes. Stale records are flagged on read and reconciled at start-up or on the next archive.
 - Request models carry only `userIds`, `reason`, `enable`; performer, source and time come from the server. JSON bodies only. Logs carry user keys only, never names, emails or reasons.
 - Client: no HTML sinks, no generic confirm modal, literal localisation keys only (`build/check-xss.sh` enforces it). User text is rendered with Lit text bindings.
-- Floors never below 17.8.0 / 18.3.0 (AU-02). NuGet ID, migration plan name and state, table and column names, route, OpenAPI document name and every `ArchivedUsers.*` alias are permanent once released.
+- Floors never below 17.8.0 / 18.3.0 / 19.0.0-rc1 (19.0.0 once it ships) (AU-02). NuGet ID, migration plan name and state, table and column names, route, OpenAPI document name and every `ArchivedUsers.*` alias are permanent once released.
 - `[Category("Gating")]` contract tests are never edited to match core: a failure triggers the fallback named on the test. `Tripwire` failures go to a security review. Only `Recording` tests may be updated, with the observation written in `docs/spikes.md`.
 - The repository is public: security reviews, plan reviews and review reports never go in it. `docs/` holds only `design.md`, `plan.md` and `spikes.md`.
 
 ## Releasing
 
-1. Bump `PackageMinor`, `PackagePatch` and `PackageVersionSuffix` in `Directory.Build.props`; every line moves together. The client version files stay `0.0.0`.
+1. Bump `PackageMinor`, `PackagePatch` and `PackageVersionSuffix` in `Directory.Build.props`; lines 17 and 18 move together (a 19 release takes its version from its tag). The client version files stay `0.0.0`.
 2. `bash build/check-vulnerable.sh` and `UmbracoMajor=17 bash build/check-vulnerable.sh` must exit 0.
+   `UmbracoMajor=19 bash build/check-vulnerable.sh` with the .NET 11 SDK first on PATH must exit 0 too.
    `bash build/check-release-version.sh release/<minor>.<patch>[-suffix]` must exit 0 (`publish.yml` runs it, and checks the tag is on `main`).
-3. Run the **Release checks** workflow by hand on the release branch (Actions → Release checks → Run workflow): Playwright e2e and SQL Server must pass on every line. It does not run on PRs.
-4. Squash-merge to `main`, tag `release/<minor>.<patch>[-suffix]` on the merge commit and push the tag. `publish.yml` packs one nupkg per line and pushes with NuGet Trusted Publishing.
-5. `gh release create release/<minor>.<patch>[-suffix] --generate-notes` for each line's version (add `--prerelease` only for a `-beta`/`-rc` tag), newest line Latest.
+3. Run the **Release checks** workflow by hand on the release branch (Actions → Release checks → Run workflow): Playwright e2e and SQL Server must pass on every line, except that 19 e2e is advisory while 19 is a release candidate (a failure is written to the run summary for the release notes). It does not run on PRs.
+4. Squash-merge to `main`, tag `release/<minor>.<patch>[-suffix]` on the merge commit and push the tag. `publish.yml` packs one nupkg per line (17 and 18) and pushes with NuGet Trusted Publishing. A three-part tag `release/19.<minor>.<patch>[-suffix]` (for example `release/19.0.0-rc.1`) packs 19 only, at the tag's version, and leaves `PackageMinor` and `PackagePatch` alone.
+5. `gh release create release/<minor>.<patch>[-suffix] --generate-notes` for each line's version (add `--prerelease` only for a `-beta`/`-rc` tag), newest stable line Latest: a 19 release candidate is never Latest.

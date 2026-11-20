@@ -235,6 +235,35 @@ public class ArchivedUsersSecurityTests : ArchivedUsersApiTestBase
         }
     }
 
+    /// <summary>
+    /// Security F2: on 19 a cookie alone authenticates, and text/plain or an empty body is a CORS "simple" request that
+    /// needs no preflight (so is multipart/form-data). The JSON-only input formatter is then the only barrier, so pin it
+    /// for every write route.
+    /// </summary>
+    [Test]
+    public async Task Text_plain_and_empty_body_posts_return_415_and_change_nothing()
+    {
+        IUser editor = await Users.CreateEditorAsync();
+        HttpClient admin = await CreateAuthenticatedClientAsync(await Users.CreateAdminAsync());
+        foreach (string action in new[] { "archive", "unarchive", "clean-up" })
+        {
+            var plain = new StringContent("{\"userIds\":[\"" + editor.Key + "\"]}", Encoding.UTF8, "text/plain");
+            HttpResponseMessage textResponse = await admin.PostAsync(Root + "/" + action, plain);
+            Assert.That(textResponse.StatusCode, Is.EqualTo(HttpStatusCode.UnsupportedMediaType), action + " text/plain");
+
+            HttpResponseMessage emptyResponse = await admin.PostAsync(Root + "/" + action, new ByteArrayContent([]));
+            Assert.That(emptyResponse.StatusCode, Is.EqualTo(HttpStatusCode.UnsupportedMediaType), action + " empty body");
+
+            // multipart/form-data is the third CORS "simple" content type a cross-site form can send.
+            using var multipart = new MultipartFormDataContent { { new StringContent(editor.Key.ToString()), "userIds" } };
+            HttpResponseMessage multipartResponse = await admin.PostAsync(Root + "/" + action, multipart);
+            Assert.That(multipartResponse.StatusCode, Is.EqualTo(HttpStatusCode.UnsupportedMediaType), action + " multipart");
+        }
+
+        Assert.That(await RecordAsync(editor.Key), Is.Null);
+        Assert.That(await IsApprovedAsync(editor.Key), Is.True);
+    }
+
 #if UMBRACO_HAS_API_USERS
     /// <summary>T5: an archived API user can no longer get a client-credentials token.</summary>
     [Test]

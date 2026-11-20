@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk.Razor">
 
   <PropertyGroup>
-    <TargetFramework>net10.0</TargetFramework>
+    <TargetFramework>$(LineTfm)</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <RootNamespace>Umbraco.Community.ArchivedUsers</RootNamespace>
@@ -27,6 +27,10 @@
     <RepositoryUrl>https://github.com/PascalA94/Umbraco.Community.ArchivedUsers</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageTags>umbraco;umbraco-marketplace;users;user-management;archive;offboarding;backoffice;audit;security;governance;plugin;package</PackageTags>
+    <!-- 19 release candidate only: label the description and keep it off the Marketplace, which lists no prerelease-only
+         packages. Both read the values above, so they stay after them. Drop both at 19.0.0 stable. -->
+    <Description Condition="'$(UmbracoMajor)' == '19'">$(Description) Built against Umbraco 19.0.0-rc1, not yet verified on 19 stable.</Description>
+    <PackageTags Condition="'$(UmbracoMajor)' == '19'">$(PackageTags.Replace('umbraco-marketplace;',''))</PackageTags>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
   </PropertyGroup>
 

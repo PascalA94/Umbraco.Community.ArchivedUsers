@@ -19,7 +19,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        line: ['17', '18']
+        line: ['17', '18', '19']
     env:
       Tests__Database__DatabaseType: SqlServer
       # MSBuild reads environment variables as properties: this picks the Umbraco line (Directory.Build.props).
@@ -44,10 +44,15 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: '10.x'
+          # 17 and 18 build on .NET 10; 19 targets net11.0 only.
+          dotnet-version: ${{ matrix.line == '19' && '11.x' || '10.x' }}
           # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
           cache: true
           cache-dependency-path: '**/packages.*.lock.json'
+
+      # Hosted images ship SDK 11, and with no global.json `dotnet` would pick it for 17 and 18 too. Pin the line's SDK.
+      - name: Pin the SDK to the line
+        run: bash build/pin-sdk.sh ${{ matrix.line == '19' && '11' || '10' }}
 
       - name: Restore (locked, floor)
         run: dotnet restore src/Umbraco.Community.ArchivedUsers.slnx --locked-mode
@@ -77,17 +82,21 @@ jobs:
           path: '**/*.trx'
 
   # Playwright against the demo site, on each line at its floor and at its newest minor (T4 at both, P1).
+  # While 19 is a release candidate its e2e legs are advisory (SQL Server stays required): a 19 failure leaves the run
+  # green, and the last step writes it to the run summary for the release notes. Drop this at 19.0.0 stable.
   e2e:
     name: e2e (${{ matrix.line }} ${{ matrix.leg }})
     runs-on: ubuntu-latest
+    continue-on-error: ${{ matrix.line == '19' }}
     strategy:
       fail-fast: false
       matrix:
-        line: ['17', '18']
+        line: ['17', '18', '19']
         leg: [floor, latest]
     env:
       UmbracoMajor: ${{ matrix.line }}
-      UmbracoDemoVersion: ${{ matrix.leg == 'latest' && format('{0}.*', matrix.line) || '' }}
+      # 19 has only release candidates: '19.*' finds no version, '19.*-*' takes the newest prerelease. '19.*' at stable.
+      UmbracoDemoVersion: ${{ matrix.leg == 'latest' && (matrix.line == '19' && '19.*-*' || format('{0}.*', matrix.line)) || '' }}
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__umbracoDbDSN_ProviderName: Microsoft.Data.SqlClient
       # Umbraco's OpenIddict server refuses plain HTTP (ID2083), so the demo runs on HTTPS with the .NET dev certificate.
@@ -131,10 +140,15 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@0f4a354dd5547a28c70b7853dbd95d5b67886e73 # v6.1.0
         with:
-          dotnet-version: '10.x'
+          # 17 and 18 build on .NET 10; 19 targets net11.0 only.
+          dotnet-version: ${{ matrix.line == '19' && '11.x' || '10.x' }}
           # NuGet cache keyed on the lock files. Not used in publish.yml, so a release never restores from a PR-filled cache.
           cache: true
           cache-dependency-path: '**/packages.*.lock.json'
+
+      # Hosted images ship SDK 11, and with no global.json `dotnet` would pick it for 17 and 18 too. Pin the line's SDK.
+      - name: Pin the SDK to the line
+        run: bash build/pin-sdk.sh ${{ matrix.line == '19' && '11' || '10' }}
 
       - name: Setup Node
         uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
@@ -185,3 +199,8 @@ jobs:
             tests/e2e/playwright-report
             tests/e2e/test-results
             demo.log
+
+      - name: Record a 19 e2e failure
+        if: failure() && matrix.line == '19'
+        run: |
+          echo "19 e2e FAILED (${{ matrix.leg }}): see the e2e-19-${{ matrix.leg }} artifact" >> "$GITHUB_STEP_SUMMARY"

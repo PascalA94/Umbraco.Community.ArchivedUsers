@@ -214,13 +214,14 @@ public class ArchivedUserServiceArchiveTests
     }
 
     [Fact]
-    public async Task Archive_already_disabled_user_does_not_rotate_stamp()
+    public async Task Archive_already_disabled_user_still_rotates_stamp()
     {
         IUser admin = _f.AddAdmin(), target = _f.AddUser(state: UserState.Disabled);
 
         await Archive(admin, target);
 
-        await _f.StampRotator.DidNotReceiveWithAnyArgs().RotateAsync(default);
+        Guid targetKey = target.Key;
+        await _f.StampRotator.Received(1).RotateAsync(targetKey);
     }
 
     /// <summary>AU-02: a stamp failure is not fatal; core already revoked tokens and refuses disabled users.</summary>
