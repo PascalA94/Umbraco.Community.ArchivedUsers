@@ -4,7 +4,7 @@
     "net10.0": {
       "Umbraco.Cms.Api.Management": {
         "type": "Direct",
-        "requested": "[18.3.0, 19.0.0-0)",
+        "requested": "[18.3.0, 19.0.0-alpha)",
         "resolved": "18.3.0",
         "contentHash": "TUPrR2Vb+s/wLNMrb2Mp23Z2RE1bpKC1IIBw9UmGJ2ui6xrgZxx3+Y/L7bWFLM6ozgi68Nh+8YE9S0HcAzp87g==",
         "dependencies": {
@@ -52,7 +52,7 @@
       },
       "Umbraco.Cms.Web.Common": {
         "type": "Direct",
-        "requested": "[18.3.0, 19.0.0-0)",
+        "requested": "[18.3.0, 19.0.0-alpha)",
         "resolved": "18.3.0",
         "contentHash": "7Rjua0edXVQxUhWUe2g++FyIvMZD9mXMKV84Mc6TzwHmBl5rC43WHUBGhSF0x2akTA65dU+exiri79oYhBueyg==",
         "dependencies": {
