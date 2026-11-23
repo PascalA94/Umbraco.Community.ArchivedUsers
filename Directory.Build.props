@@ -45,10 +45,12 @@
     <PackageMinor>0</PackageMinor>
     <PackagePatch>1</PackagePatch>
     <PackageVersionSuffix></PackageVersionSuffix>
-    <!-- The -0 upper bound excludes the next major's prereleases: NuGet orders 19.0.0-rc1 below 19.0.0, so a plain
-         [18.3.0, 19.0.0) would let an Umbraco 19 release-candidate site install the 18.x package silently. With -0 NuGet
-         warns (NU1608) instead; it is a warning, not a block, unless the site treats warnings as errors. -->
-    <UmbracoRange>[$(UmbracoFloor), $(UmbracoNextMajor)-0)</UmbracoRange>
+    <!-- The -alpha upper bound excludes the next major's prereleases: NuGet orders 19.0.0-rc1 below 19.0.0, so a plain
+         [18.3.0, 19.0.0) would let an Umbraco 19 release-candidate site install the 18.x package silently. With -alpha
+         NuGet warns (NU1608) instead; it is a warning, not a block, unless the site treats warnings as errors.
+         Not -0: nuget.org rejects a manifest whose dependency version has a prerelease label starting with a digit
+         (400 "invalid Version: '20.0.0-0'"), even though pack and restore accept it. -->
+    <UmbracoRange>[$(UmbracoFloor), $(UmbracoNextMajor)-alpha)</UmbracoRange>
     <UmbracoTestVersion Condition="'$(UmbracoTestVersion)' == ''">$(UmbracoFloor)</UmbracoTestVersion>
     <UmbracoDemoVersion Condition="'$(UmbracoDemoVersion)' == ''">$(UmbracoFloor)</UmbracoDemoVersion>
     <RestorePackagesWithLockFile>true</RestorePackagesWithLockFile>

@@ -125,11 +125,11 @@ Remove the package. Its tables stay in the database; drop `archivedUsersUser` an
 
 | Package | Umbraco | Line |
 |---|---|---|
-| 19.x (release candidate) | 19.0.0-rc1 to 19.x (`[19.0.0-rc1, 20.0.0-0)`) | `main` |
-| 18.x | 18.3.0 to 18.x (`[18.3.0, 19.0.0-0)`) | `main` |
-| 17.x | 17.8.0 to 17.x (`[17.8.0, 18.0.0-0)`) | `main` |
+| 19.x (release candidate) | 19.0.0-rc1 to 19.x (`[19.0.0-rc1, 20.0.0-alpha)`) | `main` |
+| 18.x | 18.3.0 to 18.x (`[18.3.0, 19.0.0-alpha)`) | `main` |
+| 17.x | 17.8.0 to 17.x (`[17.8.0, 18.0.0-alpha)`) | `main` |
 
-The `-0` upper bound also excludes the next major's prereleases, so installing 18.x on an Umbraco 19 release-candidate site gives a NuGet warning (NU1608) instead of a silent install (from 17.0.2 and 18.0.2; earlier versions said nothing).
+The `-alpha` upper bound also excludes the next major's prereleases, so installing 18.x on an Umbraco 19 release-candidate site gives a NuGet warning (NU1608) instead of a silent install (from 17.0.2 and 18.0.2; earlier versions said nothing).
 
 A plain install picks the newest stable version, which is 18.x until 19.0.0 ships. On Umbraco 19, install the release candidate: `dotnet add package Umbraco.Community.ArchivedUsers --version "19.0.0-rc.*"` (or pass `--prerelease`). On Umbraco 17, install a 17.x version: `--version "17.*"`.
 
