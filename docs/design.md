@@ -758,10 +758,10 @@ S1 is the go or no-go for the "clean Users list" promise. Do it first.
 ## 10. Release and distribution
 
 **Branches**
-- Line 18 (`UmbracoMajor=18`, the default) → Umbraco 18. Depends on `Umbraco.Cms.Web.Common` and `Umbraco.Cms.Api.Management` `[18.3.0,19.0.0)` (the controller base, route attribute and paged models live in `Api.Management` / `Api.Common`, plan review P12), npm `@umbraco-cms/backoffice@^18.3.0`.
-- Line 17 (`UmbracoMajor=17`) → Umbraco 17. `[17.8.0,18.0.0)`. One client bundle, built against npm `^17.8.0`, serves both lines (docs/spikes.md).
+- Line 18 (`UmbracoMajor=18`, the default) → Umbraco 18. Depends on `Umbraco.Cms.Web.Common` and `Umbraco.Cms.Api.Management` `[18.3.2,19.0.0-alpha)` (the controller base, route attribute and paged models live in `Api.Management` / `Api.Common`, plan review P12), npm `@umbraco-cms/backoffice@^18.3.0`.
+- Line 17 (`UmbracoMajor=17`) → Umbraco 17. `[17.8.2,18.0.0-alpha)`. One client bundle, built against npm `^17.8.0`, serves both lines (docs/spikes.md).
 - Same pattern as Pascal's Forms Audit Trail.
-- Lower bound: **`17.8.0` and `18.3.0`** (Pascal, 2026-10-30). Why: 17.8.0 / 18.3.0 are the first releases where core's authorize flow refuses a disabled user instead of issuing new tokens (PR #23995, issue #15309) [verified, review V12], and they sit above the 27 Oct 2026 advisories (GHSA-rpv9-qp4c-g469 High 8.8, GHSA-4qmm-fhgv-vq9g, fixed in 17.7.2 / 18.2.2) [verified, review V17]. Do not lower the floor without re-opening AU-02. Never claim a minor that CI doesn't test, so the Marketplace badge is honest.
+- Lower bound: **`17.8.0` and `18.3.0`** (Pascal, 2026-10-30). Why: 17.8.0 / 18.3.0 are the first releases where core's authorize flow refuses a disabled user instead of issuing new tokens (PR #23995, issue #15309) [verified, review V12], and they sit above the 27 Oct 2026 advisories (GHSA-rpv9-qp4c-g469 High 8.8, GHSA-4qmm-fhgv-vq9g, fixed in 17.7.2 / 18.2.2) [verified, review V17]. Raised to **`17.8.2` and `18.3.2`** for package 17.0.2 / 18.0.2 (2026-11-23): GHSA-348f-9mg8-rhv4 (Medium, published 2026-11-17, Examine members index) affects 17.4.0 to 17.8.1 and 18.x to 18.3.1 [verified 2026-11-23, `gh api /repos/umbraco/Umbraco-CMS/security-advisories`]. Do not lower the floor without re-opening AU-02. Never claim a minor that CI doesn't test, so the Marketplace badge is honest.
 - Core project shared by both lines. Only the list filter, OpenAPI wiring and tests behind `#if UMBRACO_17` differ.
 
 **Version numbers** (architect's call, follows the release-line pattern in the scope)

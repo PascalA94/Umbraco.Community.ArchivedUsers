@@ -8,7 +8,7 @@
     Lock files describe the floor: they are generated and committed at the default values of UmbracoTestVersion and
     UmbracoDemoVersion below, and the floor CI leg restores with locked mode. A latest-minor leg overrides these two
     properties and restores unlocked (force-evaluate, RestoreLockedMode=false); its rewritten lock files are never committed.
-    Nothing else overrides these properties. Floors never go below 17.8.0 / 18.3.0 (AU-02). The 19 floor is 19.0.0-rc1 while 19 is a release
+    Nothing else overrides these properties. Floors never go below 17.8.2 / 18.3.2 (AU-02, then GHSA-348f-9mg8-rhv4). The 19 floor is 19.0.0-rc1 while 19 is a release
     candidate, and rises to 19.0.0 once it ships.
     See docs/plan.md, Global Constraints P1.
   -->
@@ -16,12 +16,12 @@
     <UmbracoMajor Condition="'$(UmbracoMajor)' == ''">18</UmbracoMajor>
   </PropertyGroup>
   <PropertyGroup Condition="'$(UmbracoMajor)' == '17'">
-    <UmbracoFloor>17.8.0</UmbracoFloor>
+    <UmbracoFloor>17.8.2</UmbracoFloor>
     <UmbracoNextMajor>18.0.0</UmbracoNextMajor>
     <DefineConstants>$(DefineConstants);UMBRACO_17</DefineConstants>
   </PropertyGroup>
   <PropertyGroup Condition="'$(UmbracoMajor)' == '18'">
-    <UmbracoFloor>18.3.0</UmbracoFloor>
+    <UmbracoFloor>18.3.2</UmbracoFloor>
     <UmbracoNextMajor>19.0.0</UmbracoNextMajor>
     <DefineConstants>$(DefineConstants);UMBRACO_18</DefineConstants>
   </PropertyGroup>
@@ -43,10 +43,10 @@
   </Target>
   <PropertyGroup>
     <PackageMinor>0</PackageMinor>
-    <PackagePatch>1</PackagePatch>
+    <PackagePatch>2</PackagePatch>
     <PackageVersionSuffix></PackageVersionSuffix>
     <!-- The -alpha upper bound excludes the next major's prereleases: NuGet orders 19.0.0-rc1 below 19.0.0, so a plain
-         [18.3.0, 19.0.0) would let an Umbraco 19 release-candidate site install the 18.x package silently. With -alpha
+         [18.3.2, 19.0.0) would let an Umbraco 19 release-candidate site install the 18.x package silently. With -alpha
          NuGet warns (NU1608) instead; it is a warning, not a block, unless the site treats warnings as errors.
          Not -0: nuget.org rejects a manifest whose dependency version has a prerelease label starting with a digit
          (400 "invalid Version: '20.0.0-0'"), even though pack and restore accept it. -->

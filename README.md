@@ -4,7 +4,7 @@
 [![NuGet downloads](https://img.shields.io/nuget/dt/Umbraco.Community.ArchivedUsers)](https://www.nuget.org/packages/Umbraco.Community.ArchivedUsers)
 [![Licence: MIT](https://img.shields.io/badge/licence-MIT-blue)](https://github.com/PascalA94/Umbraco.Community.ArchivedUsers/blob/main/LICENSE)
 
-A community package, not made or supported by Umbraco HQ. Requires Umbraco 19.0.0-rc1+ (package 19.x, release candidate, on .NET 11), Umbraco 18.3+ (package 18.x) or Umbraco 17.8+ (package 17.x), both on .NET 10.
+A community package, not made or supported by Umbraco HQ. Requires Umbraco 19.0.0-rc1+ (package 19.x, release candidate, on .NET 11), Umbraco 18.3.2+ (package 18.x) or Umbraco 17.8.2+ (package 17.x), both on .NET 10.
 
 **Tidy away ex-staff and old agency users.** Archive leavers so they drop out of the Users list and user pickers, without deleting them. Archiving disables them, and every archive records who, whom, when and why. Archived users get their own **Archived users** area under Users.
 
@@ -126,14 +126,14 @@ Remove the package. Its tables stay in the database; drop `archivedUsersUser` an
 | Package | Umbraco | Line |
 |---|---|---|
 | 19.x (release candidate) | 19.0.0-rc1 to 19.x (`[19.0.0-rc1, 20.0.0-alpha)`) | `main` |
-| 18.x | 18.3.0 to 18.x (`[18.3.0, 19.0.0-alpha)`) | `main` |
-| 17.x | 17.8.0 to 17.x (`[17.8.0, 18.0.0-alpha)`) | `main` |
+| 18.x | 18.3.2 to 18.x (`[18.3.2, 19.0.0-alpha)`) | `main` |
+| 17.x | 17.8.2 to 17.x (`[17.8.2, 18.0.0-alpha)`) | `main` |
 
 The `-alpha` upper bound also excludes the next major's prereleases, so installing 18.x on an Umbraco 19 release-candidate site gives a NuGet warning (NU1608) instead of a silent install (from 17.0.2 and 18.0.2; earlier versions said nothing).
 
 A plain install picks the newest stable version, which is 18.x until 19.0.0 ships. On Umbraco 19, install the release candidate: `dotnet add package Umbraco.Community.ArchivedUsers --version "19.0.0-rc.*"` (or pass `--prerelease`). On Umbraco 17, install a 17.x version: `--version "17.*"`.
 
-17.8.0 and 18.3.0 are the first releases where Umbraco refuses disabled users at sign-in, and they include the 27 October 2026 security fixes. For 19, the floor is 19.0.0-rc1 until 19.0.0 ships.
+17.8.0 and 18.3.0 are the first releases where Umbraco refuses disabled users at sign-in. From 17.0.2 and 18.0.2 the floors are 17.8.2 and 18.3.2, which fix [GHSA-348f-9mg8-rhv4](https://github.com/umbraco/Umbraco-CMS/security/advisories/GHSA-348f-9mg8-rhv4) (sensitive member property values in the Examine members index); 17.0.1 and 18.0.1 accept 17.8.0 and 18.3.0. For 19, the floor is 19.0.0-rc1 until 19.0.0 ships.
 
 ## Contributing
 

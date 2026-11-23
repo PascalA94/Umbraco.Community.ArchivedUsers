@@ -1,5 +1,5 @@
-# osv-scanner reads the csproj version ranges ([17.8.0, 18.0.0), [18.3.0, 19.0.0), [19.0.0-rc1, 20.0.0)) as versions and matches advisories fixed long before
-# the floor. The lock files pin the resolved versions and are scanned too (build.yml names each packages.<line>.lock.json with -L, because osv-scanner only recognises the exact name packages.lock.json), so real issues on 17.8.x, 18.3.x and 19.0.0-rc1 are still reported.
+# osv-scanner reads the csproj version ranges ([17.8.2, 18.0.0-alpha), [18.3.2, 19.0.0-alpha), [19.0.0-rc1, 20.0.0-alpha)) as versions and matches advisories fixed long before
+# the floor. The lock files pin the resolved versions and are scanned too (build.yml names each packages.<line>.lock.json with -L, because osv-scanner only recognises the exact name packages.lock.json), so real issues on 17.8.2, 18.3.2 and 19.0.0-rc1 are still reported.
 [[IgnoredVulns]]
 id = "GHSA-6ffg-mjg7-585x"
-reason = "Affects Umbraco.Cms.Api.Management < 14.3.3 and 15.0.0-rc1 to 15.2.3 only; the package floors are 17.8.0, 18.3.0 and 19.0.0-rc1 (OSV query for 18.3.0 returns no vulnerabilities)."
+reason = "Affects Umbraco.Cms.Api.Management < 14.3.3 and 15.0.0-rc1 to 15.2.3 only; the package floors are 17.8.2, 18.3.2 and 19.0.0-rc1 (OSV queries for 17.8.2 and 18.3.2 return no vulnerabilities, 2026-11-23)."
